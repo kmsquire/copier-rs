@@ -28,6 +28,10 @@ pub struct YamlError {
 
 impl fmt::Display for YamlError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Reader errors already carry their own position text.
+        if self.message.contains("\n  in \"") {
+            return f.write_str(&self.message);
+        }
         write!(
             f,
             "{}\n  in \"<unicode string>\", line {}, column {}",
@@ -123,6 +127,8 @@ pub fn load_all(text: &str) -> Result<Vec<Value>, YamlError> {
 /// Fails on invalid YAML, on tags neither PyYAML's safe loader nor `handler` knows,
 /// or when `handler` fails.
 pub fn load_all_with(text: &str, handler: &mut TagHandler<'_>) -> Result<Vec<Value>, LoadError> {
+    check_printable(text, "<unicode string>")?;
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut loader = Loader {
         events: Parser::new_from_str(text).peekable(),
         anchors: HashMap::new(),
@@ -143,6 +149,65 @@ pub fn load_all_with(text: &str, handler: &mut TagHandler<'_>) -> Result<Vec<Val
         }
     }
     Ok(documents)
+}
+
+/// Decode the bytes of a YAML file like PyYAML's reader: UTF-16 when a byte-order
+/// mark says so, UTF-8 otherwise.
+///
+/// # Errors
+///
+/// Fails when the bytes are not valid in the detected encoding.
+pub fn decode(bytes: &[u8]) -> Result<String, YamlError> {
+    let utf16 = |units: Vec<u16>, encoding: &str| {
+        String::from_utf16(&units).map_err(|_| YamlError {
+            message: format!("'{encoding}' codec can't decode bytes: illegal encoding"),
+            line: 1,
+            column: 1,
+        })
+    };
+    if let Some(rest) = bytes.strip_prefix(&[0xFF, 0xFE]) {
+        utf16(
+            rest.chunks(2)
+                .map(|pair| u16::from_le_bytes([pair[0], *pair.get(1).unwrap_or(&0)]))
+                .collect(),
+            "utf-16-le",
+        )
+    } else if let Some(rest) = bytes.strip_prefix(&[0xFE, 0xFF]) {
+        utf16(
+            rest.chunks(2)
+                .map(|pair| u16::from_be_bytes([pair[0], *pair.get(1).unwrap_or(&0)]))
+                .collect(),
+            "utf-16-be",
+        )
+    } else {
+        String::from_utf8(bytes.to_vec()).map_err(|err| {
+            let position = err.utf8_error().valid_up_to();
+            YamlError {
+                message: format!(
+                    "'utf-8' codec can't decode byte #x{:02x}: invalid start byte\n  in \"<byte string>\", position {position}",
+                    bytes[position]
+                ),
+                line: 1,
+                column: 1,
+            }
+        })
+    }
+}
+
+/// PyYAML's reader rejects control characters before any parsing happens.
+fn check_printable(text: &str, name: &str) -> Result<(), YamlError> {
+    let printable = |ch: char| matches!(ch, '\t' | '\n' | '\r' | '\u{20}'..='\u{7e}' | '\u{85}' | '\u{a0}'..='\u{d7ff}' | '\u{e000}'..='\u{fffd}' | '\u{10000}'..);
+    match text.chars().enumerate().find(|(_, ch)| !printable(*ch)) {
+        None => Ok(()),
+        Some((position, ch)) => Err(YamlError {
+            message: format!(
+                "unacceptable character #x{:04x}: special characters are not allowed\n  in \"{name}\", position {position}",
+                ch as u32
+            ),
+            line: 1,
+            column: 1,
+        }),
+    }
 }
 
 fn error_at(message: impl Into<String>, span: Span) -> YamlError {

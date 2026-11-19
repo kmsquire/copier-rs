@@ -4,6 +4,7 @@
 #![warn(clippy::unwrap_used, missing_docs)]
 
 pub mod cli;
+mod dirs;
 pub mod errors;
 pub mod output;
 pub mod prompt;
@@ -13,6 +14,7 @@ pub mod template;
 pub mod tools;
 pub mod value;
 pub mod vcs;
+pub mod version;
 pub mod worker;
 pub mod yaml;
 

@@ -67,3 +67,27 @@ pub fn eprintln(text: &str) {
     eprint(text);
     eprint("\n");
 }
+
+/// ANSI styling of messages, matching the colors Python Copier prints.
+pub mod style {
+    const RESET: &str = "\x1b[0m";
+
+    fn paint(code: &str, text: &str) -> String {
+        format!("\x1b[{code}m{text}{RESET}")
+    }
+
+    /// A warning (yellow).
+    pub fn warn(text: &str) -> String {
+        paint("33", text)
+    }
+
+    /// An informational note (cyan).
+    pub fn info(text: &str) -> String {
+        paint("36", text)
+    }
+
+    /// An error (red).
+    pub fn error(text: &str) -> String {
+        paint("31", text)
+    }
+}
