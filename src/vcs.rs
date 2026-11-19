@@ -56,6 +56,38 @@ pub fn with_git_env<T>(vars: &[(&str, &OsStr)], f: impl FnOnce() -> T) -> T {
 /// A parsed `git --version`, e.g. `(2, 39, 2)`.
 pub type GitVersion = (u64, u64, u64);
 
+/// The git executable to run.
+///
+/// On macOS `/usr/bin/git` is a launcher that locates the real binary on every
+/// call, which costs more than git's own work for the small queries Copier makes.
+/// The real binary is looked up once and used directly.
+fn git_program() -> &'static OsStr {
+    static PROGRAM: std::sync::OnceLock<OsString> = std::sync::OnceLock::new();
+    PROGRAM.get_or_init(|| resolve_launcher().unwrap_or_else(|| OsString::from("git")))
+}
+
+/// The binary behind Apple's git launcher, if that is what `git` resolves to.
+fn resolve_launcher() -> Option<OsString> {
+    if !cfg!(target_os = "macos") {
+        return None;
+    }
+    let path = std::env::var_os("PATH")?;
+    let first = std::env::split_paths(&path)
+        .map(|dir| dir.join("git"))
+        .find(|candidate| candidate.is_file())?;
+    if first != Path::new("/usr/bin/git") {
+        return None;
+    }
+    let output = Command::new(&first)
+        .arg("--exec-path")
+        .stdin(Stdio::null())
+        .output()
+        .ok()?;
+    let exec_path = PathBuf::from(String::from_utf8(output.stdout).ok()?.trim());
+    let real = exec_path.join("git");
+    (output.status.success() && real.is_file()).then(|| real.into_os_string())
+}
+
 /// A `git` invocation with Copier's fixed identity and maintenance disabled.
 #[derive(Debug, Clone, Default)]
 pub struct Git {
@@ -85,7 +117,7 @@ impl Git {
     }
 
     fn command<S: AsRef<OsStr>>(&self, args: &[S]) -> Command {
-        let mut command = Command::new("git");
+        let mut command = Command::new(git_program());
         command
             .env("GIT_AUTHOR_NAME", GIT_USER_NAME)
             .env("GIT_AUTHOR_EMAIL", GIT_USER_EMAIL)
@@ -485,7 +517,17 @@ fn resolve_ref(repo: &Path, git_ref: &str) -> Result<String> {
     )))
 }
 
+/// Whether the checkout at `location` declares submodules. Without a
+/// `.gitmodules` file the submodule commands have nothing to do, and they are
+/// by far the slowest git commands Copier runs.
+fn has_submodules(location: &Path) -> bool {
+    location.join(".gitmodules").is_file()
+}
+
 fn update_submodules(location: &Path) -> Result<()> {
+    if !has_submodules(location) {
+        return Ok(());
+    }
     Git::in_dir(location).run(&[
         "submodule",
         "update",
@@ -545,7 +587,9 @@ fn clone_into(
             location.as_os_str(),
             OsStr::new(git_ref),
         ])?;
-        Git::in_dir(&location).run(&["submodule", "sync", "--recursive"])?;
+        if has_submodules(&location) {
+            Git::in_dir(&location).run(&["submodule", "sync", "--recursive"])?;
+        }
         update_submodules(&location)?;
         return Ok(location);
     }

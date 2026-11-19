@@ -149,6 +149,9 @@ pub struct Worker {
     /// so setting them beforehand has no effect (use `data` instead).
     pub answers: AnswersMap,
     prompter: Rc<RefCell<dyn Prompter>>,
+    /// Templates already checked out in this run, shared with the sub-runs of an
+    /// update so each version is cloned once.
+    templates: Rc<RefCell<Vec<Template>>>,
     cache: Cache,
 }
 
@@ -178,6 +181,7 @@ impl Default for Worker {
             ask: Vec::new(),
             answers: AnswersMap::default(),
             prompter: Rc::new(RefCell::new(NoPrompter)),
+            templates: Rc::default(),
             cache: Cache::default(),
         }
     }
@@ -387,6 +391,7 @@ impl Worker {
             ask: self.ask.clone(),
             answers: AnswersMap::default(),
             prompter: Rc::clone(&self.prompter),
+            templates: Rc::clone(&self.templates),
             cache: Cache::default(),
         })
     }
@@ -445,8 +450,19 @@ impl Worker {
             if let Some(git_ref) = self.resolved_vcs_ref()? {
                 template = template.git_ref(git_ref);
             }
-            Ok(template)
+            Ok(self.shared_template(template))
         })
+    }
+
+    /// The already checked-out equivalent of `template` if this run has one,
+    /// otherwise `template` itself, remembered for later.
+    fn shared_template(&self, template: Template) -> Template {
+        let mut known = self.templates.borrow_mut();
+        if let Some(existing) = known.iter().find(|existing| **existing == template) {
+            return existing.clone();
+        }
+        known.push(template.clone());
+        template
     }
 
     /// The template this worker renders.

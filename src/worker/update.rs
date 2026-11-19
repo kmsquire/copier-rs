@@ -279,7 +279,7 @@ impl Worker {
             old_copy.path().canonicalize()?,
             new_copy.path().canonicalize()?,
         );
-        let old_template = self.old_template()?.clone();
+        let old_template = self.shared_template(self.old_template()?.clone());
 
         // What the old template version generates, with the recorded answers.
         let mut old_worker = self.derive()?;
