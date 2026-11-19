@@ -1,0 +1,40 @@
+# Decisions
+
+Dated, with reasons. Newest last.
+
+## 2026-11-19
+
+- **Nested standalone repo** at `copier-rs/`, branch `main`, never pushed. The parent
+  repo's remote is upstream Copier; keeping the port separate avoids touching it.
+- **Follow the Python code over the docs** where they disagree (`context_lines`
+  default is 3; `update -f` means `--defaults`).
+- **Binary `copier`, library crate `copier`, package `copier-rs`.** Reports Copier
+  compatibility version `9.19.1` (`copier::COPIER_VERSION`).
+- **Git via the `git` CLI.** The update algorithm is built from `git apply --reject`,
+  `merge-file`, `diff-tree` and index manipulation; a library would risk drift.
+- **Structurally equivalent YAML output** (owner). The emitter follows PyYAML style
+  for common cases but does not port its line folding. A project created by Python
+  Copier may get its answers file reformatted once.
+- **Python-only features deferred when obscure** (owner). Arbitrary Python Jinja
+  extensions cannot be loaded; they raise `ExtensionNotFound`. See `BACKLOG.md`.
+- **`_copier_python`** is `python3`/`python` from `PATH`, or empty.
+- **Template engine: minijinja 3.1 + minijinja-contrib `pycompat`.** Spike results:
+  custom delimiters, `keep_trailing_newline`, `trim_blocks`, `lstrip_blocks`, line
+  statements, lenient and strict undefined, slicing, `.items()`, `.get()`,
+  `.format()`, `dict()`, `namespace()`, macros all work. Missing, to add through
+  our own unknown-method callback or defer: `%` string formatting, `str.center`,
+  `str.encode`, `list.append`, `{% do %}`, `lipsum`/`cycler`/`joiner` globals.
+  minijinja has no custom tags, so `{% yield %}` is handled by a pre-pass on path
+  components.
+- **YAML parsing on `saphyr-parser` events** (scalar style, tags, anchors, spans are
+  all exposed). Resolution to values (YAML 1.1 rules) and emission are ours.
+- **Library API shape.** `Worker` is a plain options struct with chainable setters;
+  `run_copy`/`run_recopy`/`run_update` consume and return it, like Python returns the
+  worker. Errors are one `CopierError` enum whose variants mirror Python's exception
+  classes, plus `Value`/`Type`/`Key` for the builtin exceptions Python raises.
+- **Output and warnings are capturable per thread** (`output::capture`,
+  `errors::capture_warnings`), replacing pytest's `capsys` and `pytest.warns`.
+- **Tests are ported ignored** (`#[ignore = "pending"]`) so `main` is always green
+  and `cargo test -- --include-ignored` shows overall progress.
+- **Interactive tests use pipes, not a pty**, like Python's `PopenSpawn`; the helper
+  is `tests/common::Tui`. The prompt layer must therefore read keys from a plain pipe.
