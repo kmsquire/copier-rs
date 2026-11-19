@@ -256,7 +256,7 @@ fn test_copy() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_copy_repo() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -1372,7 +1372,6 @@ fn test_absolute_render_path_outside_destination_raises_error_on_posix() {
 // @pytest.mark.skipif(os.name != "nt", reason="Applies only to Windows")
 #[cfg(windows)]
 #[test]
-#[ignore = "pending"]
 fn test_absolute_render_path_outside_destination_raises_error_on_windows() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

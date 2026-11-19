@@ -50,7 +50,6 @@ fn index_mode(dir: &Path) -> String {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
 fn test_updatediff() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2541,7 +2540,6 @@ fn test_update_propagates_executable_bit_removal(#[values(true, false)] file_mod
 // filesystem does not represent UNIX-like mode bits.")
 #[cfg(windows)]
 #[test]
-#[ignore = "pending"]
 fn test_update_preserves_exec_bit_authored_on_unix() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

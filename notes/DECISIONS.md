@@ -38,3 +38,25 @@ Dated, with reasons. Newest last.
   and `cargo test -- --include-ignored` shows overall progress.
 - **Interactive tests use pipes, not a pty**, like Python's `PopenSpawn`; the helper
   is `tests/common::Tui`. The prompt layer must therefore read keys from a plain pipe.
+
+## 2026-11-19 (implementation)
+
+- **Phases 2 to 6 on one branch.** The ported tests are end-to-end, so they could not
+  be un-ignored layer by layer; splitting the branch afterwards would have produced
+  merges whose tests do not run. Commits stay one per layer.
+- **Help text and completions are embedded from Python Copier** (`src/cli/help/`),
+  rendered at width 80. They are static, and this guarantees identical text.
+  Regenerate with `copier <cmd> --help` if upstream changes them.
+- **`copier --version` prints `copier 9.19.1 (copier-rs 0.1.0)`**: scripts that parse
+  the first two words keep working, and the port is not passed off as the original.
+- **Environment-dependent behavior has thread-scoped overrides** (`settings::with_locations`,
+  `tools::with_os`, `tools::with_temp_root`, `vcs::without_git`, `vcs::with_git_env`,
+  `template::with_copier_version`) instead of tests mutating the process environment.
+- **`_copier_conf.src_path / 'x'`** (pathlib division in templates) is rewritten to a
+  `pathjoin` call before rendering; minijinja has no operator overloading.
+- **Prompts print plain text when stdin or stdout is not a terminal**, as
+  prompt_toolkit does, and redraw in place otherwise.
+- **Warnings go to the real stderr**, not through the capturable output channel,
+  matching how Python's warnings stay out of `capsys`.
+- **Questions without a `when` match and without a prompt take their default**, as
+  questionary does when `when` is false.

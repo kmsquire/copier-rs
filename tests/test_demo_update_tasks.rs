@@ -7,7 +7,6 @@ use copier::Worker;
 use indoc::indoc;
 
 #[test]
-#[ignore = "pending"]
 fn test_update_tasks() {
     // Test that updating a template runs tasks from the expected version.
     let tmp = Tmp::new();

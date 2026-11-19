@@ -14,3 +14,11 @@ Deferred work. Each item says why it was deferred.
 - **Windows**: untested; the Python suite's Windows-only cases are not ported.
 - **Tab-indented YAML** (`\ta: 1`) is rejected by PyYAML's scanner but accepted here
   (the underlying parser follows YAML 1.2).
+- **Ctrl-C during tasks or clones** does not run Copier's cleanup yet.
+- **Ansible filters not implemented**: `password_hash`, `to_datetime`, `extract`,
+  `subelements`, `random_mac`, `ans_groupby`.
+- **Python-only template features**: `{% do %}`, string `%` formatting, pathlib
+  attributes on `_copier_conf` paths (`.name`, `.parent`), `packaging.Version`
+  attributes on `_version_pep440_*` (they are plain strings here).
+- **Real-terminal prompt rendering** has no automated test (needs a pty helper).
+- **Windows and Linux** have not been run.

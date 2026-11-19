@@ -108,7 +108,7 @@ fn test_get_repo() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_clone() {
     let tmp = clone("https://github.com/copier-org/copier.git", None, None).unwrap();
     assert!(tmp.join("README.md").exists());
@@ -117,7 +117,7 @@ fn test_clone() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_local_clone() {
     let tmp = clone("https://github.com/copier-org/copier.git", None, None).unwrap();
     assert!(tmp.join("README.md").exists());
@@ -401,7 +401,7 @@ fn test_local_dirty_clone() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_shallow_clone() {
     // This test should always work but should be much slower if `is_git_shallow_repo()`
     // is not checked in `clone()`.
@@ -435,7 +435,7 @@ fn test_shallow_clone() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_removes_temporary_clone() {
     let tmp = Tmp::new();
     let src_path = "https://github.com/copier-org/autopretty.git";
@@ -452,7 +452,7 @@ fn test_removes_temporary_clone() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_dont_remove_local_clone() {
     let tmp = Tmp::new();
     let src_path = tmp.path().join("autopretty");
@@ -474,7 +474,7 @@ fn test_dont_remove_local_clone() {
 
 // impure: needs network
 #[test]
-#[ignore = "pending"]
+#[ignore = "network: clones from GitHub; run with --include-ignored"]
 fn test_update_using_local_source_path_with_tilde() {
     let tmp = Tmp::new();
     // first, get a local repository clone
