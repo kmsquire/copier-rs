@@ -446,10 +446,11 @@ impl Worker {
     /// modes (`core.fileMode=false`), so the bit survives on such filesystems.
     fn sync_git_index_executable_bit(&self, dst_relpath: &Path, src_mode: u32) -> Result<()> {
         let git = Git::in_dir(&self.subproject()?.local_abspath);
-        let Ok(file_mode) = git.run(&["config", "--type=bool", "--get", "core.fileMode"]) else {
-            return Ok(());
-        };
-        if file_mode.trim() != "false" {
+        let ignores_file_mode = *self.cache.ignores_file_mode.get_or_init(|| {
+            git.run(&["config", "--type=bool", "--get", "core.fileMode"])
+                .is_ok_and(|value| value.trim() == "false")
+        });
+        if !ignores_file_mode {
             return Ok(());
         }
         let relpath = path_text(dst_relpath);

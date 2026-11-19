@@ -94,6 +94,8 @@ struct Cache {
     /// The render context of the phase it was built in; valid until the answers change.
     context: RefCell<Option<(Phase, crate::jinja::Context)>>,
     answers_relpath: RefCell<Option<PathBuf>>,
+    /// Whether the project's git repository ignores file modes (`core.fileMode=false`).
+    ignores_file_mode: OnceCell<bool>,
 }
 
 /// Options and state of one Copier run.

@@ -270,6 +270,10 @@ pub fn is_git_shallow_repo(path: &Path) -> bool {
 
 /// Whether `path` is a valid git bundle file.
 pub fn is_git_bundle(path: &Path) -> bool {
+    // A bundle is a file; asking git about anything else costs two processes.
+    if !path.is_file() {
+        return false;
+    }
     let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let Ok(scratch) = crate::tools::tempdir("copier._vcs.is_git_bundle.") else {
         return false;

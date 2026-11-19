@@ -161,8 +161,9 @@ impl Drop for CloneGuard {
 
 #[derive(Debug, Default)]
 struct Cache {
-    is_git: OnceCell<bool>,
-    url_expanded: OnceCell<String>,
+    /// The clonable URL, or `None` for a plain directory; resolving it runs git.
+    repo: OnceCell<Option<String>>,
+    git_index_modes: OnceCell<Rc<HashMap<String, u32>>>,
     local_abspath: OnceCell<PathBuf>,
     clone_guard: OnceCell<CloneGuard>,
     raw_config: OnceCell<Mapping>,
@@ -236,20 +237,27 @@ impl Template {
         self
     }
 
+    fn repo(&self) -> Option<&String> {
+        self.cache
+            .repo
+            .get_or_init(|| {
+                if vcs::is_git_available() {
+                    vcs::get_repo(&self.url)
+                } else {
+                    None
+                }
+            })
+            .as_ref()
+    }
+
     /// Whether the template is a git repository.
     pub fn is_git(&self) -> bool {
-        *self
-            .cache
-            .is_git
-            .get_or_init(|| vcs::is_git_available() && vcs::get_repo(&self.url).is_some())
+        self.repo().is_some()
     }
 
     /// The clonable form of [`Template::url`].
     pub fn url_expanded(&self) -> String {
-        self.cache
-            .url_expanded
-            .get_or_init(|| vcs::get_repo(&self.url).unwrap_or_else(|| self.url.clone()))
-            .clone()
+        self.repo().cloned().unwrap_or_else(|| self.url.clone())
     }
 
     /// Local checkout of the template.
@@ -707,7 +715,15 @@ impl Template {
 
     /// File modes recorded in the template's git index, by POSIX path. Empty for
     /// non-git templates.
-    pub fn git_index_modes(&self) -> HashMap<String, u32> {
+    pub fn git_index_modes(&self) -> Rc<HashMap<String, u32>> {
+        Rc::clone(
+            self.cache
+                .git_index_modes
+                .get_or_init(|| Rc::new(self.read_git_index_modes())),
+        )
+    }
+
+    fn read_git_index_modes(&self) -> HashMap<String, u32> {
         let mut modes = HashMap::new();
         if !self.is_git() {
             return modes;
