@@ -479,17 +479,23 @@ fn now() -> String {
         .to_string()
 }
 
-fn make_secret() -> String {
+fn make_secret() -> std::result::Result<String, minijinja::Error> {
     warn(
         WarningKind::Future,
         "'make_secret' will be removed in a future release of Copier.\nPlease use this instead: {{ 999999999999999999999999999999999|ans_random|hash('sha512') }}\nrandom and hash filters documentation: https://docs.ansible.com/ansible/2.3/playbooks_filters.html",
     );
     let mut entropy = [0u8; 48];
-    fastrand::fill(&mut entropy);
-    Sha512::digest(entropy)
+    // A secret must come from the operating system's generator, like `os.urandom`.
+    getrandom::fill(&mut entropy).map_err(|err| {
+        minijinja::Error::new(
+            ErrorKind::InvalidOperation,
+            format!("cannot read system randomness: {err}"),
+        )
+    })?;
+    Ok(Sha512::digest(entropy)
         .iter()
         .map(|byte| format!("{byte:02x}"))
-        .collect()
+        .collect())
 }
 
 #[cfg(test)]
