@@ -6,6 +6,8 @@
 pub mod cli;
 mod dirs;
 pub mod errors;
+pub mod jinja;
+pub mod json;
 pub mod output;
 pub mod prompt;
 pub mod questions;

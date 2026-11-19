@@ -16,6 +16,14 @@ name = "copier"
 path = "src/main.rs"
 
 [dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+fastrand = "2"
+md-5 = "0.10"
+minijinja = { version = "3.1", features = ["loop_controls", "preserve_order", "urlencode"] }
+minijinja-contrib = { version = "3.1", features = ["pycompat"] }
+sha1 = "0.10"
+uuid = { version = "1", features = ["v5"] }
 indexmap = "2"
 pep440_rs = "0.7"
 regex = "1"
