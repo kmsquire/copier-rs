@@ -1,0 +1,32 @@
+copier check-update {version}
+
+Check if a copy is using the latest version of its original template
+
+The copy must have a valid answers file which contains info from the last Copier
+execution, including the source template (it must be a key called `_src_path`).
+
+If that file contains also `_commit` and `destination_path` is a git repository,
+this command will do its best to determine whether a newer version is available,
+applying PEP 440 to the template's history.
+
+Usage:
+    copier check-update [SWITCHES] [destination_path=.]
+
+Meta-switches:
+    --completions SHELL:{bash, fish} Prints shell completion script and quits
+    -h, --help                      Prints this help message and quits
+    --help-all                      Prints help messages of all sub-commands and
+                                    quits
+    -v, --version                   Prints the program's version and quits
+
+Switches:
+    -a, --answers-file VALUE:str    Check for updates using this path (relative
+                                    to `destination_path`) to find the answers
+                                    file
+    -g, --prereleases               Use prereleases to compare template VCS
+                                    tags.
+    --output-format VALUE:{plain, json} Output format, either 'plain' (the default)
+                                    or 'json'.; the default is plain
+    -q, --quiet                     Suppress status output, exit with status 2
+                                    when a new template version is available
+

@@ -1,0 +1,33 @@
+copier {version}
+
+Create a new project from a template.
+
+Docs in https://copier.readthedocs.io/
+
+WARNING! Use only trusted project templates, as they might execute code with the
+same level of access as your user.
+
+
+Usage:
+    copier [SWITCHES] [SUBCOMMAND [SWITCHES]] args...
+
+Meta-switches:
+    --completions SHELL:{bash, fish} Prints shell completion script and quits
+    -h, --help                      Prints this help message and quits
+    --help-all                      Prints help messages of all sub-commands and
+                                    quits
+    -v, --version                   Prints the program's version and quits
+
+Sub-commands:
+    check-update                    Check if a copy is using the latest version
+                                    of its original template; see 'copier check-
+                                    update --help' for more info
+    copy                            Copy from a template source to a
+                                    destination.; see 'copier copy --help' for
+                                    more info
+    recopy                          Recopy a subproject from its original
+                                    template; see 'copier recopy --help' for
+                                    more info
+    update                          Update a subproject from its original
+                                    template; see 'copier update --help' for
+                                    more info

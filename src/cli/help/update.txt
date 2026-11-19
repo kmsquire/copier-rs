@@ -1,0 +1,64 @@
+copier update {version}
+
+Update a subproject from its original template
+
+The copy must have a valid answers file which contains info from the last Copier
+execution, including the source template (it must be a key called `_src_path`).
+
+If that file contains also `_commit`, and `destination_path` is a git
+repository, this command will do its best to respect the diff that you have
+generated since the last `copier` execution. To avoid that, use `copier recopy`
+instead.
+
+Usage:
+    copier update [SWITCHES] [destination_path=.]
+
+Meta-switches:
+    --completions SHELL:{bash, fish} Prints shell completion script and quits
+    -h, --help                      Prints this help message and quits
+    --help-all                      Prints help messages of all sub-commands and
+                                    quits
+    -v, --version                   Prints the program's version and quits
+
+Switches:
+    -A, --skip-answered             Skip questions that have already been
+                                    answered
+    -T, --skip-tasks                Skip template tasks execution
+    --UNSAFE, --trust               Allow templates with unsafe features (Jinja
+                                    extensions, migrations, tasks)
+    -a, --answers-file VALUE:str    Update using this path (relative to
+                                    `destination_path`) to find the answers file
+    --ask VALUE:str                 Ask the questions matching the given glob-
+                                    pattern, even if they would be skipped by
+                                    other options; may be given multiple times
+    -c, --context-lines VALUE:int   Lines of context to use for detecting
+                                    conflicts. Increase for accuracy, decrease
+                                    for resilience.; the default is 3
+    -d, --data VARIABLE=VALUE:str   Make VARIABLE available as VALUE when
+                                    rendering the template; may be given
+                                    multiple times
+    --data-file PATH:ExistingFile   Load data from a YAML file
+    -g, --prereleases               Use prereleases to compare template VCS
+                                    tags.
+    -l, -f, --defaults              Use default answers to questions, which
+                                    might be null if not specified.
+    -n, --pretend                   Run but do not make any changes
+    -o, --conflict VALUE:{rej, inline} Behavior on conflict: Create .rej files, or
+                                    add inline conflict markers.; the default is
+                                    inline
+    -q, --quiet                     Suppress status output
+    -r, --vcs-ref VALUE:str         Git reference to checkout in `template_src`.
+                                    If you do not specify it, it will try to
+                                    checkout the latest git tag, as sorted using
+                                    the PEP 440 algorithm. If you want to
+                                    checkout always the latest version, use
+                                    `--vcs-ref=HEAD`. Use the special value
+                                    `:current:` to refer to the current
+                                    reference of the template if it already
+                                    exists.
+    -s, --skip VALUE:str            Skip specified files if they exist already;
+                                    may be given multiple times
+    -x, --exclude VALUE:str         A name or shell-style pattern matching files
+                                    or folders that must not be copied; may be
+                                    given multiple times
+

@@ -108,3 +108,8 @@ impl Prompter for NoPrompter {
         Err(PromptError::Eof)
     }
 }
+
+/// The prompter the CLI uses.
+pub fn terminal() -> NoPrompter {
+    NoPrompter
+}
