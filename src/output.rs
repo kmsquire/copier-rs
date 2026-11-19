@@ -70,10 +70,22 @@ pub fn eprintln(text: &str) {
 
 /// ANSI styling of messages, matching the colors Python Copier prints.
 pub mod style {
-    const RESET: &str = "\x1b[0m";
+    use std::io::IsTerminal;
+
+    const FG_RESET: &str = "\x1b[39m";
+
+    /// Whether optional colors are emitted: only when stdout is a terminal, the
+    /// rule Python Copier inherits from plumbum.
+    fn enabled() -> bool {
+        std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none()
+    }
 
     fn paint(code: &str, text: &str) -> String {
-        format!("\x1b[{code}m{text}{RESET}")
+        if enabled() {
+            format!("\x1b[{code}m{text}{FG_RESET}")
+        } else {
+            text.to_owned()
+        }
     }
 
     /// A warning (yellow).
@@ -90,4 +102,49 @@ pub mod style {
     pub fn error(text: &str) -> String {
         paint("31", text)
     }
+}
+
+/// Emphasis of the action word in a status line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// Bright green.
+    Ok,
+    /// Bright yellow.
+    Warning,
+    /// Cyan.
+    Ignore,
+    /// Bright red.
+    Danger,
+}
+
+impl Status {
+    fn codes(self) -> &'static str {
+        match self {
+            Self::Ok => "\x1b[32m\x1b[1m",
+            Self::Warning => "\x1b[33m\x1b[1m",
+            Self::Ignore => "\x1b[36m",
+            Self::Danger => "\x1b[31m\x1b[1m",
+        }
+    }
+}
+
+const STATUS_RESET: &str = "\x1b[39m\x1b[0m";
+const HLINE: &str = "------------------------------------------";
+
+/// Print a status line to stderr: the action right-aligned to `indent` columns
+/// and always colored, then two spaces and the message.
+pub fn printf(action: &str, message: &str, status: Status, indent: usize) {
+    eprintln(&format!(
+        "{}{action:>indent$}{STATUS_RESET}  {message}",
+        status.codes()
+    ));
+}
+
+/// Print an error banner to stderr: the action, a rule, the detail, a rule.
+pub fn printf_exception(detail: &str, action: &str, message: &str) {
+    eprintln("");
+    printf(action, message, Status::Danger, 0);
+    eprintln(HLINE);
+    eprintln(detail);
+    eprintln(HLINE);
 }

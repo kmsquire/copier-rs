@@ -145,6 +145,59 @@ pub fn escape_git_path(path: &str) -> String {
     )
 }
 
+/// Shell-style match of a whole name against `pattern` (`fnmatch.fnmatchcase`):
+/// `*`, `?`, `[seq]` and `[!seq]`.
+pub fn fnmatch(name: &str, pattern: &str) -> bool {
+    fn matches(name: &[char], pattern: &[char]) -> bool {
+        match pattern.split_first() {
+            None => name.is_empty(),
+            Some(('*', rest)) => (0..=name.len()).any(|skip| matches(&name[skip..], rest)),
+            Some(('?', rest)) => !name.is_empty() && matches(&name[1..], rest),
+            Some(('[', rest)) => {
+                // An unterminated class is a literal `[`.
+                let close = rest
+                    .iter()
+                    .skip(1)
+                    .position(|ch| *ch == ']')
+                    .map(|index| index + 1);
+                match (close, name.split_first()) {
+                    (Some(close), Some((ch, name_rest))) => {
+                        let (negated, class) = match rest[..close].split_first() {
+                            Some(('!', class)) => (true, class),
+                            _ => (false, &rest[..close]),
+                        };
+                        class_contains(class, *ch) != negated
+                            && matches(name_rest, &rest[close + 1..])
+                    }
+                    (Some(_), None) => false,
+                    (None, _) => name.first() == Some(&'[') && matches(&name[1..], rest),
+                }
+            }
+            Some((literal, rest)) => name.first() == Some(literal) && matches(&name[1..], rest),
+        }
+    }
+    fn class_contains(class: &[char], ch: char) -> bool {
+        let mut index = 0;
+        while index < class.len() {
+            if index + 2 < class.len() && class[index + 1] == '-' {
+                if (class[index]..=class[index + 2]).contains(&ch) {
+                    return true;
+                }
+                index += 3;
+            } else {
+                if class[index] == ch {
+                    return true;
+                }
+                index += 1;
+            }
+        }
+        false
+    }
+    let name: Vec<char> = name.chars().collect();
+    let pattern: Vec<char> = pattern.chars().collect();
+    matches(&name, &pattern)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,6 +214,17 @@ mod tests {
         assert_eq!(py_int("0x10"), None);
         assert_eq!(py_int("1.0"), None);
         assert_eq!(py_int("-7"), Some(-7));
+    }
+
+    #[test]
+    fn fnmatch_patterns() {
+        assert!(fnmatch("copier.yml", "copier.*"));
+        assert!(fnmatch("a.pyc", "*.py[co]"));
+        assert!(!fnmatch("a.py", "*.py[co]"));
+        assert!(fnmatch("abc", "a?c"));
+        assert!(fnmatch("b", "[!a]"));
+        assert!(fnmatch("x[y", "x[y"));
+        assert!(!fnmatch("abc", "ab"));
     }
 
     #[test]
