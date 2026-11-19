@@ -161,7 +161,6 @@ impl Drop for CloneGuard {
 
 #[derive(Debug, Default)]
 struct Cache {
-    /// The clonable URL, or `None` for a plain directory; resolving it runs git.
     repo: OnceCell<Option<String>>,
     git_index_modes: OnceCell<Rc<HashMap<String, u32>>>,
     local_abspath: OnceCell<PathBuf>,
@@ -237,22 +236,18 @@ impl Template {
         self
     }
 
+    /// The clonable URL, or `None` for a plain directory. Aliases expand without
+    /// git; recognizing a local repository needs it.
     fn repo(&self) -> Option<&String> {
         self.cache
             .repo
-            .get_or_init(|| {
-                if vcs::is_git_available() {
-                    vcs::get_repo(&self.url)
-                } else {
-                    None
-                }
-            })
+            .get_or_init(|| vcs::get_repo(&self.url))
             .as_ref()
     }
 
-    /// Whether the template is a git repository.
+    /// Whether the template is a git repository that can be cloned.
     pub fn is_git(&self) -> bool {
-        self.repo().is_some()
+        vcs::is_git_available() && self.repo().is_some()
     }
 
     /// The clonable form of [`Template::url`].

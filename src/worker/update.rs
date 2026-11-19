@@ -322,8 +322,7 @@ impl Worker {
 
         if !self.skip_answered {
             // Migrations may have rewritten the answers file.
-            self.answers = AnswersMap::default();
-            self.invalidate_context();
+            self.update_answers(|answers| *answers = AnswersMap::default());
             // Only the answers are re-read: which template the project came from
             // must not change midway.
             if let Some(subproject) = self.cache.subproject.get_mut() {
@@ -334,8 +333,8 @@ impl Worker {
         current_worker.quiet = true;
         current_worker.answers = self.answers.clone();
         current_worker.copy()?;
-        self.answers = std::mem::take(&mut current_worker.answers);
-        self.invalidate_context();
+        let answers = std::mem::take(&mut current_worker.answers);
+        self.update_answers(|current| *current = answers);
         drop(current_worker);
         for filename in &files_removed {
             let _ = std::fs::remove_file(subproject_top.join(filename));

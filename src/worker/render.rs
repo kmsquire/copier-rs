@@ -445,14 +445,16 @@ impl Worker {
     /// Record the executable bit in git's index when the repository ignores file
     /// modes (`core.fileMode=false`), so the bit survives on such filesystems.
     fn sync_git_index_executable_bit(&self, dst_relpath: &Path, src_mode: u32) -> Result<()> {
-        let git = Git::in_dir(&self.subproject()?.local_abspath);
+        let project = &self.subproject()?.local_abspath;
         let ignores_file_mode = *self.cache.ignores_file_mode.get_or_init(|| {
-            git.run(&["config", "--type=bool", "--get", "core.fileMode"])
+            Git::in_dir(project)
+                .run(&["config", "--type=bool", "--get", "core.fileMode"])
                 .is_ok_and(|value| value.trim() == "false")
         });
         if !ignores_file_mode {
             return Ok(());
         }
+        let git = Git::in_dir(project);
         let relpath = path_text(dst_relpath);
         let Ok(staged) = git.run(&["ls-files", "--stage", "--", &relpath]) else {
             return Ok(());

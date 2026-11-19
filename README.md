@@ -2,8 +2,8 @@
 
 A Rust port of [Copier](https://github.com/copier-org/copier), the tool for
 rendering project templates and keeping generated projects up to date. It aims to
-be a drop-in replacement for the `copier` command: same sub-commands, same flags,
-same template format, same output.
+be a drop-in replacement for the `copier` command: same sub-commands, same flags
+and same template format, with the differences listed below.
 
 It tracks Copier **9.19.1** and reports that version to templates
 (`_min_copier_version`).
@@ -15,7 +15,8 @@ It tracks Copier **9.19.1** and reports that version to templates
   migrations), tasks, the `yield` tag, `!include`, `_external_data`, settings and
   trust, and interactive prompts.
 - The Python test suite was ported first: 368 of its 394 test functions run and
-  pass here (1,200+ cases). `notes/TEST_LEDGER.md` accounts for the rest.
+  pass here (`cargo test` reports about 1,220 cases once parametrized tests are
+  expanded). `notes/TEST_LEDGER.md` accounts for the rest.
 - Only macOS has been exercised so far.
 
 ## Build and run
@@ -26,7 +27,9 @@ target/release/copier copy gh:org/template my-project
 target/release/copier update my-project
 ```
 
-Git 2.27 or newer must be on `PATH`, as for Python Copier.
+Needs Rust 1.80 or newer to build and `git` on `PATH` to run (2.27 or newer
+recommended, as for Python Copier). `copy` asks the template's questions
+interactively unless you pass `--defaults` or answer them with `--data`.
 
 ## Differences from Python Copier
 
@@ -57,8 +60,9 @@ See `notes/BACKLOG.md` for the full list of deferred work.
 
 ## Performance
 
-Measured on one machine (macOS, release build, average of 5 runs, small template
-with three questions and one task):
+Measured on one machine while other work was running (macOS, release build,
+average of 5 runs, small template with three questions and one task). The update
+row was measured before the last round of caching; treat all of it as indicative:
 
 | Operation | Python Copier | copier-rs |
 |---|---|---|
@@ -81,4 +85,4 @@ implementations run, which bounds the gain.
 
 ## License
 
-MIT, like Copier.
+MIT, like Copier; see `LICENSE`.

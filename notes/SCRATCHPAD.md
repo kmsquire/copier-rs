@@ -26,13 +26,13 @@ The approved plan: `~/.claude/plans/please-create-a-complete-nifty-melody.md`.
 | 4 Copy, recopy, CLI | done |
 | 5 Update, migrations, check-update | done |
 | 6 Interactive prompts | done (pipe mode tested; real-terminal mode only smoke-tested by hand) |
-| 7 Parity, performance, polish | not started |
+| 7 Parity, performance, polish | first pass done and merged: git-query caching, parity harness, README, LICENSE; the rest is in the work list below |
 
 Phases 2 to 6 were developed together on one branch (`phase-2-foundations`), because
 the ported tests exercise the whole stack and could only be turned on once copy,
 update, the CLI and the prompts all existed. The commits are still one per layer.
 
-`cargo test`: 1,219 passing, 0 failing, 28 ignored. `notes/TEST_LEDGER.md` lists
+`cargo test`: 1,222 passing, 0 failing, 30 ignored. `notes/TEST_LEDGER.md` lists
 every ignored test with its reason (regenerate with `python3 tools/gen_ledger.py`).
 A first parity check (copy plus update with a local edit) produced byte-identical
 trees to Python Copier; release build is about 2x faster on copy and 1.4x on update,
@@ -40,27 +40,29 @@ with git subprocesses dominating.
 
 ## Where the code is
 
-- `copier-rs/` is the main checkout (`main`); `copier-rs-wt/` is a worktree used for
-  the implementation branch. After merging, the worktree can be removed with
-  `git worktree remove ../copier-rs-wt` from `copier-rs/`.
+- `copier-rs/` is the main checkout (`main`). `../copier-rs-wt/` is a leftover
+  worktree of the merged `phase-2-foundations` branch; remove it with
+  `git worktree remove ../copier-rs-wt` from `copier-rs/` when convenient.
 - `tools/unignore.py <module>...` runs a module with `--include-ignored` and removes
   `#[ignore = "pending"]` from tests that pass.
 
-## Phase 7 work list
+## Remaining work
 
-1. Performance: profile a copy. Suspects: the render context is rebuilt for every
-   rendered string (`worker/context.rs`), `Template::is_git` and `vcs::get_repo`
-   spawn several git processes (including `git bundle verify` in a scratch repo)
-   for plain directories, and `sync_git_index_executable_bit` runs git per file.
-2. Parity harness (`parity/`): run Python Copier and this binary over the fixture
-   templates and synthesized ones, compare trees (YAML/JSON structurally).
-3. A pty-backed test session for `test_prompt::test_path_completion` and
-   `test_prompt_does_not_capture_mouse`; exercise the real-terminal redraw path.
-4. SIGINT handling: a Ctrl-C during a task or clone should clean up like Python
+1. SIGINT handling: a Ctrl-C during a task or clone should clean up like Python
    does (`test_cleanup` has three ignored tests waiting on this).
-5. Native versions of popular Jinja extensions (see `BACKLOG.md`).
-6. README with usage, differences from Python Copier, and benchmarks.
-7. Review follow-ups below.
+2. A pty-backed test session for `test_prompt::test_path_completion` and
+   `test_prompt_does_not_capture_mouse`; exercise the real-terminal redraw path.
+3. Native versions of popular Jinja extensions (see `BACKLOG.md`).
+4. Run on Linux and Windows.
+5. Performance beyond git: a copy from a git template runs 19 git processes; the
+   clone, checkout and submodule update are inherent, the rest could shrink
+   (`rev-parse` calls in `vcs.rs`, `is_in_git_repo` per worker).
+6. Extend `parity/run.py` with update round-trips and synthesized templates.
+7. Refactors the reviews asked for and that are not done: split
+   `worker/update.rs::apply_update` into steps (a `generate_copy` helper and a
+   small struct for the three repositories), one shared `cached()` helper returning
+   references, move path helpers out of `settings.rs`, narrow `pub` modules in
+   `lib.rs` to the real public API.
 
 ## Review follow-ups
 
@@ -102,4 +104,4 @@ with git subprocesses dominating.
 
 ## Next steps
 
-Phase 7; see the work list above.
+See "Remaining work" above. `python3 parity/run.py` compares against Python Copier.

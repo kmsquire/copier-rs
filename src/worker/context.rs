@@ -87,8 +87,18 @@ impl Worker {
         Ok(context)
     }
 
-    /// Forget the cached render context; call after changing `self.answers`.
-    pub(super) fn invalidate_context(&self) {
+    /// Change the answers. Every change goes through here so the cached render
+    /// context can never outlive the answers it was built from.
+    pub(super) fn update_answers<T>(
+        &mut self,
+        change: impl FnOnce(&mut crate::questions::AnswersMap) -> T,
+    ) -> T {
+        let result = change(&mut self.answers);
+        self.invalidate_context();
+        result
+    }
+
+    fn invalidate_context(&self) {
         *self.cache.context.borrow_mut() = None;
         *self.cache.answers_relpath.borrow_mut() = None;
     }

@@ -145,7 +145,8 @@ pub struct Worker {
     pub skip_tasks: bool,
     /// Glob patterns of questions to ask even when already answered.
     pub ask: Vec<String>,
-    /// Answers collected by the run.
+    /// Answers collected by the run. Read them after a run; a run replaces them,
+    /// so setting them beforehand has no effect (use `data` instead).
     pub answers: AnswersMap,
     prompter: Rc<RefCell<dyn Prompter>>,
     cache: Cache,

@@ -10,8 +10,8 @@ Needs the Python Copier checkout in the parent directory with its virtualenv
 which are compared as parsed data (the two YAML emitters may format differently).
 """
 import filecmp
-import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,7 +27,11 @@ DEMO_DATA = ["-d", "py3=true", "-d", "myvar=awesome", "-d", "what=world", "-d", 
              "-d", "version=2.0.0", "-d", "description=A library for rendering projects templates"]
 
 # Files whose content is random by design (`make_secret()`), so they never match.
-RANDOM_FILES = {"config.py"}
+RANDOM_FILES = {"config.py"}  # paths relative to the generated project
+
+# Cases both implementations must refuse (the template names Jinja extensions
+# that do not exist).
+EXPECTED_FAILURES = {"demo_merge_options"}
 
 # (name, template directory, extra arguments)
 CASES = [
@@ -64,14 +68,38 @@ def compare(left, right, relative=""):
             yield f"{rel}: file versus directory"
         elif os.path.isdir(a):
             yield from compare(a, b, rel)
-        elif name in RANDOM_FILES:
-            continue
-        elif not filecmp.cmp(a, b, shallow=False):
-            structured = name.endswith((".yml", ".yaml", ".json"))
-            if not structured or load_structured(a) is None or load_structured(a) != load_structured(b):
+        else:
+            if os.stat(a).st_mode != os.stat(b).st_mode:
+                yield f"{rel}: modes differ"
+            if rel in RANDOM_FILES or filecmp.cmp(a, b, shallow=False):
+                continue
+            parsed = load_structured(a) if name.endswith((".yml", ".yaml", ".json")) else None
+            if parsed is None or parsed != load_structured(b):
                 yield f"{rel}: contents differ"
-        elif os.stat(a).st_mode != os.stat(b).st_mode:
-            yield f"{rel}: modes differ"
+
+
+def run_case(root, name, template, extra):
+    """Render one template with both implementations and list the differences."""
+    runs = {}
+    for label, binary in (("python", PY_COPIER), ("rust", RS_COPIER)):
+        destination = os.path.join(root, name, label)
+        command = [binary, "copy", "--quiet", "--defaults", "--trust", *extra,
+                   os.path.join(FIXTURES, template), destination]
+        done = subprocess.run(command, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        runs[label] = (done.returncode, destination, done.stderr.strip().splitlines()[-1:] or [""])
+    (py_code, py_dir, py_error), (rs_code, rs_dir, rs_error) = runs["python"], runs["rust"]
+    if py_code != rs_code:
+        return py_code, [f"exit codes differ: python {py_code}, rust {rs_code} ({rs_error[0]})"]
+    if py_code != 0:
+        # Both refuse the template. Their wording differs by nature (a Python
+        # traceback versus a message), so only cases listed as expected failures pass.
+        if name in EXPECTED_FAILURES:
+            return py_code, []
+        return py_code, [f"both fail: python {py_error[0]!r}, rust {rs_error[0]!r}"]
+    missing = [label for label, path in (("python", py_dir), ("rust", rs_dir)) if not os.path.isdir(path)]
+    if missing:
+        return py_code, [f"no output directory from {', '.join(missing)}"]
+    return py_code, list(compare(py_dir, rs_dir))
 
 
 def main() -> int:
@@ -80,31 +108,20 @@ def main() -> int:
             print(f"missing {binary}", file=sys.stderr)
             return 2
     keep = "--keep" in sys.argv
+    root = tempfile.mkdtemp(prefix="copier-parity.")
     failures = 0
-    with tempfile.TemporaryDirectory(prefix="copier-parity.") as root:
-        for name, template, extra in CASES:
-            outputs = {}
-            for label, binary in (("python", PY_COPIER), ("rust", RS_COPIER)):
-                destination = os.path.join(root, name, label)
-                command = [binary, "copy", "--quiet", "--defaults", "--trust", *extra, os.path.join(FIXTURES, template), destination]
-                done = subprocess.run(command, capture_output=True, text=True, stdin=subprocess.DEVNULL)
-                outputs[label] = (done.returncode, destination)
-            (py_code, py_dir), (rs_code, rs_dir) = outputs["python"], outputs["rust"]
-            if py_code != rs_code:
-                differences = [f"exit codes differ: python {py_code}, rust {rs_code}"]
-            elif py_code != 0:
-                differences = []
-            else:
-                differences = list(compare(py_dir, rs_dir))
-            status = "ok" if not differences else "DIFFERENT"
-            print(f"{name}: {status} (exit {py_code})")
-            for difference in differences:
-                print(f"    {difference}")
-            failures += bool(differences)
-        if keep:
-            print(f"outputs kept in {root}")
-            input("press Enter to delete them ")
-    print(json.dumps({"cases": len(CASES), "different": failures}))
+    for name, template, extra in CASES:
+        code, differences = run_case(root, name, template, extra)
+        outcome = "DIFFERENT" if differences else ("ok" if code == 0 else "ok, both refuse it")
+        print(f"{name}: {outcome} (exit {code})")
+        for difference in differences:
+            print(f"    {difference}")
+        failures += bool(differences)
+    if keep:
+        print(f"outputs kept in {root}")
+    else:
+        shutil.rmtree(root, ignore_errors=True)
+    print(f"{len(CASES)} cases, {failures} different")
     return 1 if failures else 0
 
 

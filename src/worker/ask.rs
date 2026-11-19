@@ -28,14 +28,14 @@ impl Worker {
     /// Collect the answers to the template's questions, prompting where needed.
     pub(super) fn ask_questions(&mut self) -> Result<()> {
         let template = self.template()?;
-        self.answers = AnswersMap {
+        let fresh = AnswersMap {
             user_defaults: self.user_defaults.clone(),
             init: self.data.clone(),
             last: self.subproject()?.last_answers().clone(),
             metadata: template.metadata()?,
             ..AnswersMap::default()
         };
-        self.invalidate_context();
+        self.update_answers(|answers| *answers = fresh);
         for (key, details) in &template.questions_data()? {
             let var_name = key.py_str();
             let details = match details {
@@ -43,16 +43,17 @@ impl Worker {
                 _ => Mapping::new(),
             };
             let outcome = self.examine(&var_name, &details)?;
-            if outcome.forget_last {
-                self.answers.last.shift_remove(key);
-            }
-            if outcome.hide {
-                self.answers.hide(&var_name);
-            }
-            if let Decision::Answer(answer) = outcome.decision {
-                self.answers.user.insert(key.clone(), answer);
-            }
-            self.invalidate_context();
+            self.update_answers(|answers| {
+                if outcome.forget_last {
+                    answers.last.shift_remove(key);
+                }
+                if outcome.hide {
+                    answers.hide(&var_name);
+                }
+                if let Decision::Answer(answer) = outcome.decision {
+                    answers.user.insert(key.clone(), answer);
+                }
+            });
         }
         Ok(())
     }

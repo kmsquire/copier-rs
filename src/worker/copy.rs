@@ -114,8 +114,8 @@ impl Worker {
         let mut worker = self.derive()?;
         worker.src_path = Some(old_template.url.clone());
         worker.copy()?;
-        self.answers = worker.answers;
-        self.invalidate_context();
+        let answers = std::mem::take(&mut worker.answers);
+        self.update_answers(|current| *current = answers);
         Ok(())
     }
 }
