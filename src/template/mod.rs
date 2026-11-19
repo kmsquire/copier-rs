@@ -264,9 +264,20 @@ impl Template {
         cached(&self.cache.local_abspath, || {
             let mut result = PathBuf::from(&self.url);
             if self.is_git() {
-                let location = crate::tools::tempdir(vcs::CLONE_PREFIX)?.keep();
-                // Registered before cloning so a failed clone is cleaned up too.
-                let _ = self.cache.clone_guard.set(CloneGuard(location.clone()));
+                // Registered before cloning so a failed clone is cleaned up too; a retry
+                // after a failure reuses the same guarded directory.
+                let location = match self.cache.clone_guard.get() {
+                    Some(guard) => guard.0.clone(),
+                    None => {
+                        let location = crate::tools::tempdir(vcs::CLONE_PREFIX)?.keep();
+                        self.cache
+                            .clone_guard
+                            .get_or_init(|| CloneGuard(location))
+                            .0
+                            .clone()
+                    }
+                };
+                std::fs::create_dir_all(&location)?;
                 let url = self.url_expanded();
                 let git_ref = match &self.git_ref {
                     Some(git_ref) => git_ref.clone(),

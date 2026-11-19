@@ -32,7 +32,7 @@ Phases 2 to 6 were developed together on one branch (`phase-2-foundations`), bec
 the ported tests exercise the whole stack and could only be turned on once copy,
 update, the CLI and the prompts all existed. The commits are still one per layer.
 
-`cargo test`: 1,225 passing, 0 failing, 27 ignored. `notes/TEST_LEDGER.md` lists
+`cargo test`: 1,228 passing, 0 failing, 27 ignored. `notes/TEST_LEDGER.md` lists
 every ignored test with its reason (regenerate with `python3 tools/gen_ledger.py`).
 A first parity check (copy plus update with a local edit) produced byte-identical
 trees to Python Copier; release build is about 2x faster on copy and 1.4x on update,

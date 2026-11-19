@@ -5,7 +5,7 @@
 //! recorded, the run notices it at the next safe point and fails with
 //! [`CopierError::Interrupted`], and the usual unwinding removes the temporary
 //! directories. Like Python Copier, an interrupted run leaves the destination as
-//! it is.
+//! it is. Pressing Ctrl-C a second time exits immediately with status 130.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Once;
@@ -20,13 +20,31 @@ static INSTALL: Once = Once::new();
 pub fn install() {
     INSTALL.call_once(|| {
         // Failing here means another handler owns the signal; it decides then.
-        let _ = ctrlc::set_handler(raise);
+        let _ = ctrlc::set_handler(|| {
+            // A second Ctrl-C means the first was not acted on (a task that traps
+            // the signal, a blocked read): give the user the usual way out.
+            if PENDING.swap(true, Ordering::SeqCst) {
+                std::process::exit(130);
+            }
+        });
     });
 }
 
-/// Record an interrupt, as if Ctrl-C had been pressed.
+/// Ask the run in progress to stop at its next safe point, as Ctrl-C does. For
+/// hosts that handle signals themselves and want to forward a cancellation.
 pub fn raise() {
     PENDING.store(true, Ordering::SeqCst);
+}
+
+/// Finish a top-level run: consume a pending interrupt so it cannot leak into the
+/// next run, and report it instead of whatever error it was mistaken for. A run
+/// that completed keeps its result; the interrupt came too late to matter.
+pub(crate) fn settle<T>(outcome: Result<T>) -> Result<T> {
+    let interrupted = PENDING.swap(false, Ordering::SeqCst);
+    match outcome {
+        Err(_) if interrupted => Err(CopierError::Interrupted),
+        other => other,
+    }
 }
 
 /// Fail if an interrupt is pending. The interrupt stays pending, so it cannot be
@@ -37,9 +55,4 @@ pub(crate) fn check() -> Result<()> {
     } else {
         Ok(())
     }
-}
-
-/// Forget a pending interrupt once it has been reported to the caller.
-pub(crate) fn clear() {
-    PENDING.store(false, Ordering::SeqCst);
 }

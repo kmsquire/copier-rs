@@ -92,6 +92,10 @@ pub struct TerminalPrompter {
     keys: KeyReader<Stdin>,
     /// Whether prompts are drawn with cursor control (both ends are terminals).
     interactive: bool,
+    /// Whether keys are read unbuffered. True whenever stdin is a terminal, even
+    /// with output redirected, so Ctrl-C arrives as a key instead of leaving the
+    /// prompt blocked on a line read.
+    raw_input: bool,
     /// Rows between the top of the drawn frame and the cursor's row.
     rows_above_cursor: usize,
 }
@@ -122,10 +126,12 @@ impl Default for TerminalPrompter {
 impl TerminalPrompter {
     /// A prompter reading keys from stdin and drawing on stdout.
     pub fn new() -> Self {
-        let interactive = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+        let raw_input = std::io::stdin().is_terminal();
+        let interactive = raw_input && std::io::stdout().is_terminal();
         Self {
             keys: KeyReader::new(std::io::stdin()),
             interactive,
+            raw_input,
             rows_above_cursor: 0,
         }
     }
@@ -464,7 +470,7 @@ impl TerminalPrompter {
 
 impl Prompter for TerminalPrompter {
     fn ask(&mut self, spec: &PromptSpec<'_>) -> Result<Value, PromptError> {
-        let _raw = RawMode::enter(self.interactive);
+        let _raw = RawMode::enter(self.raw_input);
         self.rows_above_cursor = 0;
         match spec.kind {
             PromptKind::Confirm => {
@@ -478,7 +484,7 @@ impl Prompter for TerminalPrompter {
     }
 
     fn confirm(&mut self, message: &str, default: bool) -> Result<bool, PromptError> {
-        let _raw = RawMode::enter(self.interactive);
+        let _raw = RawMode::enter(self.raw_input);
         self.rows_above_cursor = 0;
         let mut frame = Frame::default();
         frame.push(Style::Plain, "?");

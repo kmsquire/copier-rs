@@ -22,8 +22,12 @@ Deferred work. Each item says why it was deferred.
 - **Real-terminal prompt rendering** has no automated test (needs a pty helper).
 - **Windows and Linux** have not been run.
 - **A git library for read-only queries** (`gix`): measured 2026-11-19, a copy from a
-  git template runs 10 git processes; 8 are small queries costing about 7 ms each
-  on macOS once Apple's launcher is bypassed (about 55 ms of a 250 ms copy). A
+  git template runs 10 git processes; 8 are small queries costing about 7.5 ms each
+  on macOS once Apple's launcher is bypassed (about 60 ms of a 250 ms copy). A
   library could remove most of that but not the clone, checkout, or the update's
   `git apply --reject` / `merge-file` machinery, and adds a large dependency and a
   second source of git behavior. Not worth it yet; revisit if profiles change.
+- **One subprocess runner** for git and tasks that performs the interrupt checks,
+  instead of `interrupt::check()` at each call site; split `src/vcs.rs` (runner,
+  probes, mirror cache, clone) along the lines the phase 8 review proposed.
+- **A reproducible benchmark script**; README timings come from ad-hoc runs.

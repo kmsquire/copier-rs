@@ -33,12 +33,16 @@ fn tree_entries(dir: &Path) -> Vec<PathBuf> {
     entries
 }
 
-/// A `copier.yml` whose only task sends SIGINT to this test process.
-fn sigint_tasks() -> String {
+/// A `copier.yml` whose tasks first record what is in the temp root (proof that
+/// there is something to clean up) and then send SIGINT to this test process.
+fn sigint_tasks(temp_root: &Path, seen: &Path) -> String {
     indoc! {r#"
         _tasks:
+            - "ls 'TEMP_ROOT' > 'SEEN'"
             - "{{ _copier_python }} -c 'import os, signal; os.kill(PID, signal.SIGINT)'"
     "#}
+    .replace("TEMP_ROOT", &temp_root.to_string_lossy())
+    .replace("SEEN", &seen.to_string_lossy())
     .replace("PID", &std::process::id().to_string())
 }
 
@@ -119,9 +123,10 @@ fn test_cleanup_on_interrupt_during_copy_task() {
     let root = Tmp::new();
     let (src, dst) = root.src_dst();
     let tmp = root.mktemp("tmp");
+    let seen = root.path().join("seen.txt");
 
     file_tree! {
-        src.join("copier.yml") => sigint_tasks(),
+        src.join("copier.yml") => sigint_tasks(&tmp, &seen),
     };
     git_save(&src, "Test commit", Some("v1"));
 
@@ -130,7 +135,11 @@ fn test_cleanup_on_interrupt_during_copy_task() {
         copier::tools::with_temp_root(&tmp, || worker(&src, &dst).unsafe_(true).run_copy());
     assert_err!(result, CopierError::Interrupted);
 
+    // The template clone existed while the task ran, and is gone now.
+    assert!(!common::read(&seen).trim().is_empty());
     assert!(tree_entries(&tmp).is_empty());
+    // As in Python, an interrupted copy leaves the destination in place.
+    assert!(dst.exists());
 }
 
 // Python: skipif win32 (`os.kill(pid, SIGINT)` is not supported on Windows).
@@ -142,6 +151,7 @@ fn test_cleanup_on_interrupt_during_update_task() {
     let root = Tmp::new();
     let (src, dst) = root.src_dst();
     let tmp = root.mktemp("tmp");
+    let seen = root.path().join("seen.txt");
 
     file_tree! {
         src.join(ANSWERS_FILE_TMPL) => "{{ _copier_answers|to_yaml }}",
@@ -149,7 +159,7 @@ fn test_cleanup_on_interrupt_during_update_task() {
     git_save(&src, "Test commit", Some("v1"));
 
     file_tree! {
-        src.join("copier.yml") => sigint_tasks(),
+        src.join("copier.yml") => sigint_tasks(&tmp, &seen),
     };
     git_save(&src, "Test commit", Some("v2"));
 
@@ -166,6 +176,8 @@ fn test_cleanup_on_interrupt_during_update_task() {
         assert_err!(result, CopierError::Interrupted);
     });
 
+    // Clones and scratch repositories existed while the task ran, and are gone now.
+    assert!(!common::read(&seen).trim().is_empty());
     assert!(tree_entries(&tmp).is_empty());
 }
 
@@ -183,8 +195,9 @@ fn test_cleanup_on_interrupt_during_git_clone() {
     git_save(&src, "Test commit", Some("v1"));
 
     // Python patches `Popen` to raise SIGINT when `git clone` starts. Here the
-    // interrupt is recorded up front, so it is noticed at the first git command
-    // of the clone, after the temporary checkout directory has been created.
+    // interrupt is requested up front: detecting that `src` is a repository still
+    // works, the checkout directory is created, and the first git command that
+    // does real work (listing the tags to clone) notices the interrupt.
     let result = copier::tools::with_temp_root(&tmp, || {
         copier::interrupt::raise();
         worker(&src, &dst).run_copy()
@@ -192,6 +205,24 @@ fn test_cleanup_on_interrupt_during_git_clone() {
     assert_err!(result, CopierError::Interrupted);
 
     assert!(tree_entries(&tmp).is_empty());
+    // Nothing was rendered: the run stopped while fetching the template.
+    assert!(tree_entries(&dst).is_empty());
+}
+
+#[test]
+fn test_interrupt_does_not_leak_into_the_next_run() {
+    let _serial = serial();
+    let root = Tmp::new();
+    let (src, dst) = root.src_dst();
+    file_tree! {
+        src.join("file.txt") => "content",
+    };
+
+    copier::interrupt::raise();
+    assert_err!(worker(&src, &dst).run_copy(), CopierError::Interrupted);
+
+    worker(&src, &dst).run_copy().unwrap();
+    assert!(dst.join("file.txt").is_file());
 }
 
 #[test]

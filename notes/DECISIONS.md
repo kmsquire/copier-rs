@@ -65,8 +65,12 @@ Dated, with reasons. Newest last.
 
 - **Ctrl-C is recorded, not fatal** (`src/interrupt.rs`): a process-wide flag set by
   a signal handler, checked at safe points, surfacing as `CopierError::Interrupted`.
-  The flag stays set until the public `run_*` call that noticed it returns, so code
-  that ignores a failing git command cannot lose it. Like Python (whose cleanup is
+  The flag stays pending during a run, so code that ignores a failing git command
+  cannot lose it, and is always consumed when a top-level call (`run_*`,
+  `get_update_data`) returns: any error of an interrupted run is reported as
+  `Interrupted`, a run that completed keeps its result. Repository probes ignore
+  the flag so a pending interrupt is not read as "not a repository". A second
+  Ctrl-C exits with status 130. Like Python (whose cleanup is
   `except Exception`), an interrupted copy does not delete the destination; only
   temporary directories go.
 - **Git stays on the command line.** Profiling showed the time was not in git's work
@@ -74,3 +78,12 @@ Dated, with reasons. Newest last.
   without `.gitmodules`; (b) Apple's `/usr/bin/git` launcher, 21 ms per call versus
   7.5 ms for the binary behind it, now resolved once; (c) cloning each template
   version up to five times per update, now shared between the sub-runs.
+- **`tools::resolve` follows `realpath` rules** (2026-11-19): the longest existing
+  prefix is canonicalized in one call, then the rest is walked per component so a
+  symlink reached after `..` is followed. The lexical shortcut it replaced was a
+  path-traversal hole (see `test_rendered_path_cannot_escape_through_a_symlink_after_dot_dot`).
+- **Submodule commands are skipped without `.gitmodules`.** One known difference: a
+  tree with gitlinks but no `.gitmodules` makes Python fail ("no submodule mapping
+  found"); this port copies it without the submodule content.
+- **`git` lookup results are cached per process** (`is_git_available`, the resolved
+  macOS binary). A host that changes `PATH` mid-process will not see the change.

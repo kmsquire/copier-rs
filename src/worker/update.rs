@@ -587,6 +587,15 @@ pub fn get_update_data(
     answers_file: Option<&Path>,
     use_prereleases: bool,
 ) -> Result<UpdateData> {
+    crate::interrupt::install();
+    crate::interrupt::settle(update_data(dst_path, answers_file, use_prereleases))
+}
+
+fn update_data(
+    dst_path: &Path,
+    answers_file: Option<&Path>,
+    use_prereleases: bool,
+) -> Result<UpdateData> {
     let mut worker = Worker::new()
         .dst_path(dst_path)
         .use_prereleases(use_prereleases);

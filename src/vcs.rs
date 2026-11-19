@@ -140,10 +140,17 @@ impl Git {
     /// Fails only when git cannot be started.
     pub fn output<S: AsRef<OsStr>>(&self, args: &[S]) -> Result<Output> {
         crate::interrupt::check()?;
-        let output = self.command(args).stdin(Stdio::null()).output()?;
+        let output = self.probe(args)?;
         // Ctrl-C reaches git too; its failure must surface as the interrupt.
         crate::interrupt::check()?;
         Ok(output)
+    }
+
+    /// Run git for a yes/no question about a repository, ignoring interrupts: a
+    /// pending Ctrl-C must not turn into "this is not a repository". The run still
+    /// stops at the next command that does real work.
+    fn probe<S: AsRef<OsStr>>(&self, args: &[S]) -> Result<Output> {
+        Ok(self.command(args).stdin(Stdio::null()).output()?)
     }
 
     /// Run git and return its stdout.
@@ -189,8 +196,7 @@ impl Git {
 
     /// Whether git exits successfully.
     pub fn succeeds<S: AsRef<OsStr>>(&self, args: &[S]) -> bool {
-        self.output(args)
-            .is_ok_and(|output| output.status.success())
+        self.probe(args).is_ok_and(|output| output.status.success())
     }
 }
 
@@ -279,7 +285,7 @@ fn compile(pattern: &str) -> Regex {
 
 fn toplevel(path: &Path) -> Option<PathBuf> {
     let output = Git::in_dir(path)
-        .output(&["rev-parse", "--show-toplevel"])
+        .probe(&["rev-parse", "--show-toplevel"])
         .ok()?;
     output
         .status
@@ -306,7 +312,7 @@ pub fn is_git_repo_root(path: &Path) -> bool {
 /// Whether `path` is a shallow clone.
 pub fn is_git_shallow_repo(path: &Path) -> bool {
     Git::in_dir(path)
-        .output(&["rev-parse", "--is-shallow-repository"])
+        .probe(&["rev-parse", "--is-shallow-repository"])
         .is_ok_and(|output| {
             output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true"
         })
@@ -401,7 +407,7 @@ fn is_valid_mirror(mirror: &Path) -> bool {
     mirror.join("objects").is_dir()
         && Git::new()
             .env("GIT_DIR", mirror)
-            .output(&["rev-parse", "--is-bare-repository"])
+            .probe(&["rev-parse", "--is-bare-repository"])
             .is_ok_and(|output| {
                 output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true"
             })
