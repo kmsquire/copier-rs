@@ -265,10 +265,7 @@ impl Template {
         cached(&self.cache.local_abspath, || {
             let mut result = PathBuf::from(&self.url);
             if self.is_git() {
-                let location = tempfile::Builder::new()
-                    .prefix(vcs::CLONE_PREFIX)
-                    .tempdir()?
-                    .keep();
+                let location = crate::tools::tempdir(vcs::CLONE_PREFIX)?.keep();
                 // Registered before cloning so a failed clone is cleaned up too.
                 let _ = self.cache.clone_guard.set(CloneGuard(location.clone()));
                 let url = self.url_expanded();

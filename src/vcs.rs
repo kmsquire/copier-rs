@@ -33,6 +33,32 @@ const GIT_PREFIXES: &[&str] = &[
 const GIT_POSTFIX: &str = ".git";
 const ALIASES: &[(&str, &str)] = &[("gh:", "https://github.com"), ("gl:", "https://gitlab.com")];
 
+thread_local! {
+    static GIT_HIDDEN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static GIT_ENV: std::cell::RefCell<Vec<(OsString, OsString)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Run `f` as if no git executable were installed (on this thread).
+pub fn without_git<T>(f: impl FnOnce() -> T) -> T {
+    let previous = GIT_HIDDEN.with(|cell| cell.replace(true));
+    let result = f();
+    GIT_HIDDEN.with(|cell| cell.set(previous));
+    result
+}
+
+/// Run `f` with extra environment variables set for every git process Copier
+/// starts on this thread, e.g. `GIT_CONFIG_GLOBAL` to use another git config.
+pub fn with_git_env<T>(vars: &[(&str, &OsStr)], f: impl FnOnce() -> T) -> T {
+    let scoped = vars
+        .iter()
+        .map(|(key, value)| (OsString::from(key), value.to_os_string()))
+        .collect();
+    let previous = GIT_ENV.with(|slot| slot.replace(scoped));
+    let result = f();
+    GIT_ENV.with(|slot| *slot.borrow_mut() = previous);
+    result
+}
+
 /// A parsed `git --version`, e.g. `(2, 39, 2)`.
 pub type GitVersion = (u64, u64, u64);
 
@@ -71,6 +97,7 @@ impl Git {
             .env("GIT_AUTHOR_EMAIL", GIT_USER_EMAIL)
             .env("GIT_COMMITTER_NAME", GIT_USER_NAME)
             .env("GIT_COMMITTER_EMAIL", GIT_USER_EMAIL)
+            .envs(GIT_ENV.with(|slot| slot.borrow().clone()))
             .envs(self.env.iter().map(|(key, value)| (key, value)))
             .args(["-c", "maintenance.auto=false", "-c", "gc.auto=0"])
             .args(args);
@@ -165,6 +192,9 @@ pub fn git(cwd: &Path, args: &[&str]) -> Result<String> {
 
 /// Whether a `git` executable is on `PATH`.
 pub fn is_git_available() -> bool {
+    if GIT_HIDDEN.with(std::cell::Cell::get) {
+        return false;
+    }
     let names: &[&str] = if cfg!(windows) {
         &["git.exe", "git"]
     } else {
@@ -247,10 +277,7 @@ pub fn is_git_shallow_repo(path: &Path) -> bool {
 /// Whether `path` is a valid git bundle file.
 pub fn is_git_bundle(path: &Path) -> bool {
     let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    let Ok(scratch) = tempfile::Builder::new()
-        .prefix("copier._vcs.is_git_bundle.")
-        .tempdir()
-    else {
+    let Ok(scratch) = crate::tools::tempdir("copier._vcs.is_git_bundle.") else {
         return false;
     };
     let git = Git::in_dir(scratch.path());
@@ -486,10 +513,7 @@ pub fn clone(url: &str, git_ref: Option<&str>, location: Option<&Path>) -> Resul
     let git_version = get_git_version()?;
     let location = match location {
         Some(location) => location.to_path_buf(),
-        None => tempfile::Builder::new()
-            .prefix(CLONE_PREFIX)
-            .tempdir()?
-            .keep(),
+        None => crate::tools::tempdir(CLONE_PREFIX)?.keep(),
     };
     if is_remote(url) {
         let mirror = get_or_create_mirror(url)?;

@@ -273,12 +273,8 @@ impl Worker {
                     subproject_top.display()
                 ))
             })?;
-        let old_copy = tempfile::Builder::new()
-            .prefix("copier._main.old_copy.")
-            .tempdir()?;
-        let new_copy = tempfile::Builder::new()
-            .prefix("copier._main.new_copy.")
-            .tempdir()?;
+        let old_copy = crate::tools::tempdir("copier._main.old_copy.")?;
+        let new_copy = crate::tools::tempdir("copier._main.new_copy.")?;
         let (old_path, new_path) = (
             old_copy.path().canonicalize()?,
             new_copy.path().canonicalize()?,

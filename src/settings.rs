@@ -13,6 +13,31 @@ use crate::yaml;
 /// Name of the environment variable overriding the settings file location.
 pub const ENV_VAR: &str = "COPIER_SETTINGS_PATH";
 
+thread_local! {
+    static LOCATIONS: std::cell::RefCell<Option<(PathBuf, Option<PathBuf>)>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Run `f` with the settings lookup redirected on this thread: `default_path`
+/// stands in for the platform location and `env_path` for `$COPIER_SETTINGS_PATH`
+/// (`None` meaning unset). The process environment is left alone, which matters
+/// when several runs share a process.
+pub fn with_locations<T>(default_path: &Path, env_path: Option<&Path>, f: impl FnOnce() -> T) -> T {
+    let scoped = (default_path.to_path_buf(), env_path.map(Path::to_path_buf));
+    let previous = LOCATIONS.with(|slot| slot.borrow_mut().replace(scoped));
+    let result = f();
+    LOCATIONS.with(|slot| *slot.borrow_mut() = previous);
+    result
+}
+
+fn env_settings_path() -> Option<PathBuf> {
+    match LOCATIONS.with(|slot| slot.borrow().clone()) {
+        Some((_, env_path)) => env_path,
+        None => std::env::var_os(ENV_VAR)
+            .filter(|value| !value.is_empty())
+            .map(PathBuf::from),
+    }
+}
+
 /// User-wide settings loaded from `settings.yml`.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Settings {
@@ -38,9 +63,7 @@ impl Settings {
 ///
 /// Returns [`CopierError::Settings`] when the file is not valid.
 pub fn load_settings(path: Option<&Path>) -> Result<Settings> {
-    let env_path = std::env::var_os(ENV_VAR)
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from);
+    let env_path = env_settings_path();
     let path = match (path, &env_path) {
         (Some(path), _) => path.to_path_buf(),
         (None, Some(env_path)) => env_path.clone(),
@@ -122,7 +145,10 @@ fn validate(data: Value) -> std::result::Result<Settings, Vec<(String, String)>>
 
 /// Location of the settings file in the platform's configuration directory.
 pub fn default_settings_path() -> PathBuf {
-    dirs::user_config_dir().join("settings.yml")
+    match LOCATIONS.with(|slot| slot.borrow().clone()) {
+        Some((default_path, _)) => default_path,
+        None => dirs::user_config_dir().join("settings.yml"),
+    }
 }
 
 /// Whether `repository` matches any entry of `trust`.

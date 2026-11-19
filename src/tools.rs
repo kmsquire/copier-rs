@@ -14,6 +14,43 @@ pub const OS: Option<&str> = if cfg!(target_os = "linux") {
     None
 };
 
+thread_local! {
+    static OS_OVERRIDE: std::cell::Cell<Option<Option<&'static str>>> = const { std::cell::Cell::new(None) };
+    static TEMP_ROOT: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+/// The operating system name templates see, honoring [`with_os`].
+pub fn os() -> Option<&'static str> {
+    OS_OVERRIDE.with(std::cell::Cell::get).unwrap_or(OS)
+}
+
+/// Run `f` with templates on this thread seeing `os` as the operating system.
+pub fn with_os<T>(os: Option<&'static str>, f: impl FnOnce() -> T) -> T {
+    let previous = OS_OVERRIDE.with(|cell| cell.replace(Some(os)));
+    let result = f();
+    OS_OVERRIDE.with(|cell| cell.set(previous));
+    result
+}
+
+/// Run `f` with Copier's temporary directories on this thread created under `root`
+/// instead of the system location.
+pub fn with_temp_root<T>(root: &std::path::Path, f: impl FnOnce() -> T) -> T {
+    let previous = TEMP_ROOT.with(|slot| slot.borrow_mut().replace(root.to_path_buf()));
+    let result = f();
+    TEMP_ROOT.with(|slot| *slot.borrow_mut() = previous);
+    result
+}
+
+/// Create a temporary directory whose name starts with `prefix`.
+pub(crate) fn tempdir(prefix: &str) -> std::io::Result<tempfile::TempDir> {
+    let mut builder = tempfile::Builder::new();
+    builder.prefix(prefix);
+    match TEMP_ROOT.with(|slot| slot.borrow().clone()) {
+        Some(root) => builder.tempdir_in(root),
+        None => builder.tempdir(),
+    }
+}
+
 /// Python's `float(str)`: surrounding whitespace, `_` between digits, `inf`,
 /// `infinity` and `nan` are accepted.
 pub fn py_float(text: &str) -> Option<f64> {

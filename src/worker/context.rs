@@ -161,7 +161,7 @@ impl Worker {
             ("skip_answered", Value::Bool(self.skip_answered)),
             ("skip_tasks", Value::Bool(self.skip_tasks)),
             ("sep", Value::from(std::path::MAIN_SEPARATOR.to_string())),
-            ("os", tools::OS.map_or(Value::Null, Value::from)),
+            ("os", tools::os().map_or(Value::Null, Value::from)),
         ];
         Ok(entries
             .into_iter()
