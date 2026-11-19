@@ -31,6 +31,7 @@ saphyr-parser = "0.3"
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 sha2 = "0.10"
 tempfile = "3"
+unicode-normalization = "0.1"
 thiserror = "2"
 
 [dev-dependencies]

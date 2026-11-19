@@ -9,6 +9,7 @@ pub mod errors;
 pub mod jinja;
 pub mod json;
 pub mod output;
+pub mod pathspec;
 pub mod prompt;
 pub mod questions;
 pub mod settings;
