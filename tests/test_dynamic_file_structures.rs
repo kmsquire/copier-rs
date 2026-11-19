@@ -94,8 +94,7 @@ fn test_folder_loop_reports_path_when_yielded_part_rendering_fails() {
         .defaults(true)
         .overwrite(true)
         .run_copy()
-        .err()
-        .expect("expected an error");
+        .expect_err("expected an error");
     assert!(
         matches!(err, CopierError::UserMessage(_)),
         "unexpected error: {err:?}"

@@ -15,6 +15,9 @@ pub enum PromptError {
     Eof,
 }
 
+/// Live check of a typed answer; `Err` carries the message to show.
+pub type Validator<'a> = dyn Fn(&Value) -> Result<(), String> + 'a;
+
 /// One option of a select or checkbox prompt.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PromptChoice {
@@ -49,7 +52,7 @@ pub struct PromptSpec<'a> {
     /// Question type (`str`, `yaml`, ...), for syntax-aware editing.
     pub type_name: String,
     /// Live check of the typed answer; `Err` carries the message to show.
-    pub validator: Option<&'a dyn Fn(&Value) -> Result<(), String>>,
+    pub validator: Option<&'a Validator<'a>>,
 }
 
 impl PromptSpec<'_> {

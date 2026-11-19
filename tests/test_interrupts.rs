@@ -89,8 +89,7 @@ fn test_multiple_questions_interrupt() {
 
     let CopierError::AnswersInterrupt(interrupt) = worker
         .run_copy()
-        .err()
-        .expect("run_copy should be interrupted")
+        .expect_err("run_copy should be interrupted")
     else {
         panic!("expected CopierError::AnswersInterrupt");
     };

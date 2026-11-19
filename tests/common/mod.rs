@@ -57,9 +57,29 @@ pub struct Tmp {
     root: PathBuf,
 }
 
+/// Make `python` resolve to the Python Copier checkout's interpreter (which has
+/// PyYAML) for the tasks and migrations that templates in the tests run.
+fn ensure_python_on_path() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let venv_bin = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join(".venv")
+            .join("bin");
+        if let (Ok(venv_bin), Some(path)) = (venv_bin.canonicalize(), std::env::var_os("PATH")) {
+            let mut dirs = vec![venv_bin];
+            dirs.extend(std::env::split_paths(&path));
+            if let Ok(joined) = std::env::join_paths(dirs) {
+                std::env::set_var("PATH", joined);
+            }
+        }
+    });
+}
+
 impl Tmp {
     /// Create an empty temporary root.
     pub fn new() -> Self {
+        ensure_python_on_path();
         let guard = tempfile::tempdir().expect("create temp dir");
         // Resolved because copier records resolved paths (macOS /var -> /private/var).
         let root = guard.path().canonicalize().expect("resolve temp dir");

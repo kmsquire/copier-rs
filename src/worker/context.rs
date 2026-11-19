@@ -1,6 +1,6 @@
 //! The variables templates are rendered with (`Worker._render_context`).
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use indexmap::IndexMap;
@@ -254,10 +254,5 @@ impl Worker {
             output::eprintln(&self.render_string(message, &[])?);
         }
         Ok(())
-    }
-
-    /// Whether `path` is the project directory or inside it.
-    pub(super) fn is_inside_project(&self, path: &Path) -> Result<bool> {
-        Ok(tools::resolve(path).starts_with(tools::resolve(&self.subproject()?.local_abspath)))
     }
 }

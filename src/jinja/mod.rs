@@ -127,6 +127,7 @@ pub struct JinjaEnv {
     env: Environment<'static>,
     yield_open: Regex,
     yield_close: Regex,
+    path_division: Regex,
     deferred: DeferredError,
 }
 
@@ -259,10 +260,15 @@ impl JinjaEnv {
             tag(r"yield\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s+from\s+(?P<iterable>.+?)")
                 .map_err(pattern_error)?;
         let yield_close = tag("endyield").map_err(pattern_error)?;
+        let path_division = Regex::new(
+            r#"(?P<path>_copier_conf\.(?:src_path|dst_path|answers_file))\s*/\s*(?P<operand>'[^']*'|"[^"]*"|[A-Za-z_][\w.]*)"#,
+        )
+        .map_err(pattern_error)?;
         Ok(Self {
             env,
             yield_open,
             yield_close,
+            path_division,
             deferred,
         })
     }
@@ -290,13 +296,27 @@ impl JinjaEnv {
         CopierError::Template { kind, message }
     }
 
+    /// Rewrite `_copier_conf.<path> / <operand>` into a `pathjoin` call.
+    ///
+    /// In Python those values are `pathlib` paths and `/` joins them; here they are
+    /// strings, for which the engine has no division.
+    fn rewrite_path_division<'s>(&self, source: &'s str) -> std::borrow::Cow<'s, str> {
+        if !source.contains("_copier_conf.") {
+            return std::borrow::Cow::Borrowed(source);
+        }
+        self.path_division
+            .replace_all(source, "pathjoin(${path}, ${operand}, mode='native')")
+    }
+
     /// Render the template `source` with `context`.
     ///
     /// # Errors
     ///
     /// Returns [`CopierError::Template`] on syntax or rendering failures.
     pub fn render_str(&self, source: &str, context: &Context) -> Result<String> {
-        let rendered = self.env.render_str(source, context.to_jinja());
+        let rendered = self
+            .env
+            .render_str(&self.rewrite_path_division(source), context.to_jinja());
         self.finish(rendered)
     }
 
