@@ -90,7 +90,17 @@ pub(crate) fn load_data_file(dst_path: &Path, relpath: &Path, warn_on_missing: b
         .map(|text| yaml::load(&text));
     match loaded {
         Some(Ok(value)) => value,
-        Some(Err(_)) => Value::Map(Mapping::new()),
+        Some(Err(error)) => {
+            // Python raises here; an unreadable answers file must at least be loud.
+            warn(
+                WarningKind::User,
+                format!(
+                    "Cannot parse {}; ignoring it: {error}",
+                    dst_path.join(relpath).display()
+                ),
+            );
+            Value::Map(Mapping::new())
+        }
         None => {
             if warn_on_missing {
                 warn(

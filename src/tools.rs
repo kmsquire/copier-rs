@@ -15,30 +15,24 @@ pub const OS: Option<&str> = if cfg!(target_os = "linux") {
 };
 
 thread_local! {
-    static OS_OVERRIDE: std::cell::Cell<Option<Option<&'static str>>> = const { std::cell::Cell::new(None) };
+    static OS_OVERRIDE: std::cell::RefCell<Option<Option<&'static str>>> = const { std::cell::RefCell::new(None) };
     static TEMP_ROOT: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
 }
 
 /// The operating system name templates see, honoring [`with_os`].
 pub fn os() -> Option<&'static str> {
-    OS_OVERRIDE.with(std::cell::Cell::get).unwrap_or(OS)
+    OS_OVERRIDE.with(|slot| *slot.borrow()).unwrap_or(OS)
 }
 
 /// Run `f` with templates on this thread seeing `os` as the operating system.
 pub fn with_os<T>(os: Option<&'static str>, f: impl FnOnce() -> T) -> T {
-    let previous = OS_OVERRIDE.with(|cell| cell.replace(Some(os)));
-    let result = f();
-    OS_OVERRIDE.with(|cell| cell.set(previous));
-    result
+    crate::scoped::with(&OS_OVERRIDE, Some(os), f)
 }
 
 /// Run `f` with Copier's temporary directories on this thread created under `root`
 /// instead of the system location.
 pub fn with_temp_root<T>(root: &std::path::Path, f: impl FnOnce() -> T) -> T {
-    let previous = TEMP_ROOT.with(|slot| slot.borrow_mut().replace(root.to_path_buf()));
-    let result = f();
-    TEMP_ROOT.with(|slot| *slot.borrow_mut() = previous);
-    result
+    crate::scoped::with(&TEMP_ROOT, Some(root.to_path_buf()), f)
 }
 
 /// Create a temporary directory whose name starts with `prefix`.

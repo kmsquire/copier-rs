@@ -7,6 +7,9 @@ use crate::output;
 use crate::value::{Mapping, Value};
 use crate::yaml::{self, LoadError, TaggedNode};
 
+/// Deepest chain of `!include`s followed before assuming a cycle.
+const MAX_INCLUDE_DEPTH: usize = 32;
+
 /// Settings whose values are concatenated across documents instead of overridden.
 const MERGED_OPTIONS: &[&str] = &[
     "_exclude",
@@ -28,7 +31,7 @@ const MERGED_OPTIONS: &[&str] = &[
 /// for non-scalar `!include` nodes, a `Value` error for absolute patterns and
 /// [`CopierError::ForbiddenPath`] for files outside the template.
 pub fn load_template_config(conf_path: &Path, quiet: bool) -> Result<Value> {
-    let documents = load_documents(conf_path, conf_path).map_err(|err| match err {
+    let documents = load_documents(conf_path, conf_path, 0).map_err(|err| match err {
         LoadError::Custom(err) => err,
         LoadError::Yaml(err) => {
             if !quiet {
@@ -88,11 +91,22 @@ pub fn load_template_config(conf_path: &Path, quiet: bool) -> Result<Value> {
 }
 
 /// Read every non-empty mapping document of `path`, flattening included lists.
-fn load_documents(path: &Path, conf_path: &Path) -> std::result::Result<Vec<Mapping>, LoadError> {
+fn load_documents(
+    path: &Path,
+    conf_path: &Path,
+    depth: usize,
+) -> std::result::Result<Vec<Mapping>, LoadError> {
+    if depth > MAX_INCLUDE_DEPTH {
+        return Err(LoadError::Custom(CopierError::Value(format!(
+            "YAML includes are nested too deeply (a file probably includes itself): {}",
+            path.display()
+        ))));
+    }
     let bytes = std::fs::read(path).map_err(|err| LoadError::Custom(err.into()))?;
     let text = yaml::decode(&bytes)?;
-    let mut handler =
-        |tag: &str, node: TaggedNode<'_>| (tag == "!include").then(|| include(node, conf_path));
+    let mut handler = |tag: &str, node: TaggedNode<'_>| {
+        (tag == "!include").then(|| include(node, conf_path, depth))
+    };
     let loaded = yaml::load_all_with(&text, &mut handler)?;
     let mut documents = Vec::new();
     flatten(loaded, &mut documents);
@@ -111,7 +125,7 @@ fn flatten(values: Vec<Value>, out: &mut Vec<Mapping>) {
     }
 }
 
-fn include(node: TaggedNode<'_>, conf_path: &Path) -> Result<Value> {
+fn include(node: TaggedNode<'_>, conf_path: &Path, depth: usize) -> Result<Value> {
     let TaggedNode::Scalar(pattern) = node else {
         let kind = if node == TaggedNode::Sequence {
             "SequenceNode"
@@ -140,12 +154,13 @@ fn include(node: TaggedNode<'_>, conf_path: &Path) -> Result<Value> {
                 hint: "YAML include file path must be inside the template directory".to_owned(),
             });
         }
-        let documents = load_documents(&include_file, conf_path).map_err(|err| match err {
-            LoadError::Custom(err) => err,
-            LoadError::Yaml(_) => CopierError::InvalidConfigFile {
-                conf_path: include_file.clone(),
-            },
-        })?;
+        let documents =
+            load_documents(&include_file, conf_path, depth + 1).map_err(|err| match err {
+                LoadError::Custom(err) => err,
+                LoadError::Yaml(_) => CopierError::InvalidConfigFile {
+                    conf_path: include_file.clone(),
+                },
+            })?;
         data.extend(documents.into_iter().map(Value::Map));
     }
     Ok(Value::Seq(data))

@@ -111,10 +111,11 @@ impl Worker {
                 subproject.answers_relpath.display()
             )));
         };
-        let mut worker = self.derive();
+        let mut worker = self.derive()?;
         worker.src_path = Some(old_template.url.clone());
         worker.copy()?;
         self.answers = worker.answers;
+        self.invalidate_context();
         Ok(())
     }
 }

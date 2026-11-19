@@ -35,6 +35,7 @@ impl Worker {
             metadata: template.metadata()?,
             ..AnswersMap::default()
         };
+        self.invalidate_context();
         for (key, details) in &template.questions_data()? {
             let var_name = key.py_str();
             let details = match details {
@@ -51,6 +52,7 @@ impl Worker {
             if let Decision::Answer(answer) = outcome.decision {
                 self.answers.user.insert(key.clone(), answer);
             }
+            self.invalidate_context();
         }
         Ok(())
     }

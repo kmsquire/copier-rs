@@ -89,9 +89,9 @@ impl Worker {
                 };
                 process.env(name.trim_start_matches('_').to_uppercase(), text);
             }
-            let status = process
-                .status()
-                .map_err(|error| CopierError::Value(format!("Cannot run task {shown}: {error}")))?;
+            let status = process.status().map_err(|error| {
+                CopierError::Process(format!("Cannot run task {shown}: {error}"))
+            })?;
             if !status.success() {
                 let command = match &task.cmd {
                     Command::Shell(_) => py_str_repr(&shown),

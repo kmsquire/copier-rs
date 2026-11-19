@@ -34,16 +34,13 @@ const GIT_POSTFIX: &str = ".git";
 const ALIASES: &[(&str, &str)] = &[("gh:", "https://github.com"), ("gl:", "https://gitlab.com")];
 
 thread_local! {
-    static GIT_HIDDEN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static GIT_HIDDEN: std::cell::RefCell<bool> = const { std::cell::RefCell::new(false) };
     static GIT_ENV: std::cell::RefCell<Vec<(OsString, OsString)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// Run `f` as if no git executable were installed (on this thread).
 pub fn without_git<T>(f: impl FnOnce() -> T) -> T {
-    let previous = GIT_HIDDEN.with(|cell| cell.replace(true));
-    let result = f();
-    GIT_HIDDEN.with(|cell| cell.set(previous));
-    result
+    crate::scoped::with(&GIT_HIDDEN, true, f)
 }
 
 /// Run `f` with extra environment variables set for every git process Copier
@@ -53,10 +50,7 @@ pub fn with_git_env<T>(vars: &[(&str, &OsStr)], f: impl FnOnce() -> T) -> T {
         .iter()
         .map(|(key, value)| (OsString::from(key), value.to_os_string()))
         .collect();
-    let previous = GIT_ENV.with(|slot| slot.replace(scoped));
-    let result = f();
-    GIT_ENV.with(|slot| *slot.borrow_mut() = previous);
-    result
+    crate::scoped::with(&GIT_ENV, scoped, f)
 }
 
 /// A parsed `git --version`, e.g. `(2, 39, 2)`.
@@ -192,7 +186,7 @@ pub fn git(cwd: &Path, args: &[&str]) -> Result<String> {
 
 /// Whether a `git` executable is on `PATH`.
 pub fn is_git_available() -> bool {
-    if GIT_HIDDEN.with(std::cell::Cell::get) {
+    if GIT_HIDDEN.with(|slot| *slot.borrow()) {
         return false;
     }
     let names: &[&str] = if cfg!(windows) {
@@ -513,8 +507,25 @@ pub fn clone(url: &str, git_ref: Option<&str>, location: Option<&Path>) -> Resul
     let git_version = get_git_version()?;
     let location = match location {
         Some(location) => location.to_path_buf(),
-        None => crate::tools::tempdir(CLONE_PREFIX)?.keep(),
+        None => {
+            // The caller owns the checkout only once it exists; a failed clone
+            // must not leave the directory behind.
+            let scratch = crate::tools::tempdir(CLONE_PREFIX)?;
+            let checkout = clone_into(url, git_ref, scratch.path(), git_version)?;
+            let _ = scratch.keep();
+            return Ok(checkout);
+        }
     };
+    clone_into(url, git_ref, &location, git_version)
+}
+
+fn clone_into(
+    url: &str,
+    git_ref: &str,
+    location: &Path,
+    git_version: GitVersion,
+) -> Result<PathBuf> {
+    let location = location.to_path_buf();
     if is_remote(url) {
         let mirror = get_or_create_mirror(url)?;
         // `git worktree add` refuses an existing path, even an empty directory.

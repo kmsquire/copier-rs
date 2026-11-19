@@ -91,6 +91,9 @@ struct Cache {
     template_copy_root: OnceCell<PathBuf>,
     match_exclude: RefCell<Option<Rc<PathSpec>>>,
     match_skip: OnceCell<PathSpec>,
+    /// The render context of the phase it was built in; valid until the answers change.
+    context: RefCell<Option<(Phase, crate::jinja::Context)>>,
+    answers_relpath: RefCell<Option<PathBuf>>,
 }
 
 /// Options and state of one Copier run.
@@ -356,14 +359,14 @@ impl Worker {
 
     /// A worker with the same options and prompter but none of the derived state,
     /// like Python's `dataclasses.replace(worker)`.
-    fn derive(&self) -> Self {
-        Self {
+    fn derive(&self) -> Result<Self> {
+        Ok(Self {
             src_path: self.src_path.clone(),
             dst_path: self.dst_path.clone(),
             answers_file: self.answers_file.clone(),
             vcs_ref: self.vcs_ref.clone(),
             data: self.data.clone(),
-            settings: Some(self.user_settings().cloned().unwrap_or_default()),
+            settings: Some(self.user_settings()?.clone()),
             exclude: self.exclude.clone(),
             use_prereleases: self.use_prereleases,
             skip_if_exists: self.skip_if_exists.clone(),
@@ -382,7 +385,7 @@ impl Worker {
             answers: AnswersMap::default(),
             prompter: Rc::clone(&self.prompter),
             cache: Cache::default(),
-        }
+        })
     }
 
     /// The user settings in effect: the ones given, or those loaded from disk.

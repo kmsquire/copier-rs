@@ -12,6 +12,7 @@ pub mod output;
 pub mod pathspec;
 pub mod prompt;
 pub mod questions;
+mod scoped;
 pub mod settings;
 pub mod subproject;
 pub mod template;

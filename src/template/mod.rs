@@ -37,11 +37,7 @@ thread_local! {
 
 /// Run `f` as if this were Copier `version`, for exercising `_min_copier_version`.
 pub fn with_copier_version<T>(version: &str, f: impl FnOnce() -> T) -> T {
-    let previous =
-        COPIER_VERSION_OVERRIDE.with(|slot| slot.borrow_mut().replace(version.to_owned()));
-    let result = f();
-    COPIER_VERSION_OVERRIDE.with(|slot| *slot.borrow_mut() = previous);
-    result
+    crate::scoped::with(&COPIER_VERSION_OVERRIDE, Some(version.to_owned()), f)
 }
 
 /// The Copier version templates are checked against.

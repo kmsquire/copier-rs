@@ -282,7 +282,7 @@ impl Worker {
         let old_template = self.old_template()?.clone();
 
         // What the old template version generates, with the recorded answers.
-        let mut old_worker = self.derive();
+        let mut old_worker = self.derive()?;
         old_worker.dst_path = old_path.join(&subproject_subdir);
         old_worker.data = self.subproject()?.last_answers().clone();
         old_worker.defaults = true;
@@ -323,24 +323,26 @@ impl Worker {
         if !self.skip_answered {
             // Migrations may have rewritten the answers file.
             self.answers = AnswersMap::default();
+            self.invalidate_context();
             // Only the answers are re-read: which template the project came from
             // must not change midway.
             if let Some(subproject) = self.cache.subproject.get_mut() {
                 subproject.reload_answers();
             }
         }
-        let mut current_worker = self.derive();
+        let mut current_worker = self.derive()?;
         current_worker.quiet = true;
         current_worker.answers = self.answers.clone();
         current_worker.copy()?;
         self.answers = std::mem::take(&mut current_worker.answers);
+        self.invalidate_context();
         drop(current_worker);
         for filename in &files_removed {
             let _ = std::fs::remove_file(subproject_top.join(filename));
         }
 
         // What the new template version generates, without the user's changes.
-        let mut new_worker = self.derive();
+        let mut new_worker = self.derive()?;
         new_worker.dst_path = new_path.join(&subproject_subdir);
         new_worker.data = self.replayable_answers();
         new_worker.defaults = true;
@@ -426,8 +428,9 @@ impl Worker {
                 output::eprintln(&output::style::warn(
                     "Make sure Git >= 2.24 is installed to improve updates.",
                 ));
-                *diff_args.last_mut().unwrap_or(&mut "") = "--inter-hunk-context=0";
-                let output = old_git.output(&diff_args)?;
+                let mut fallback_args = diff_base.to_vec();
+                fallback_args.push("--inter-hunk-context=0");
+                let output = old_git.output(&fallback_args)?;
                 if !output.status.success() {
                     return Err(CopierError::Process(
                         String::from_utf8_lossy(&output.stderr).into_owned(),

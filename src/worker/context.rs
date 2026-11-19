@@ -72,22 +72,44 @@ impl Object for ExternalData {
 
 impl Worker {
     /// The full render context.
+    ///
+    /// Building it renders templates and queries git, so it is kept until the
+    /// answers or the phase change; see [`Worker::invalidate_context`].
     pub(super) fn context(&self) -> Result<Context> {
-        self.build_context(None)
+        let phase = Phase::current();
+        if let Some((built_in, context)) = self.cache.context.borrow().as_ref() {
+            if *built_in == phase {
+                return Ok(context.clone());
+            }
+        }
+        let context = self.build_context(None)?;
+        *self.cache.context.borrow_mut() = Some((phase, context.clone()));
+        Ok(context)
+    }
+
+    /// Forget the cached render context; call after changing `self.answers`.
+    pub(super) fn invalidate_context(&self) {
+        *self.cache.context.borrow_mut() = None;
+        *self.cache.answers_relpath.borrow_mut() = None;
     }
 
     /// The answers file path relative to the project, rendered.
     pub(super) fn answers_relpath(&self) -> Result<PathBuf> {
+        if let Some(path) = self.cache.answers_relpath.borrow().as_ref() {
+            return Ok(path.clone());
+        }
         let unrendered = match &self.answers_file {
             Some(path) => path.clone(),
             None => self.template_ref()?.answers_relpath()?,
         };
         // The path may use `_copier_conf`, which would otherwise contain this very path.
         let context = self.build_context(Some(""))?;
-        Ok(PathBuf::from(
+        let path = PathBuf::from(
             self.env()?
                 .render_str(&unrendered.to_string_lossy(), &context)?,
-        ))
+        );
+        *self.cache.answers_relpath.borrow_mut() = Some(path.clone());
+        Ok(path)
     }
 
     fn build_context(&self, answers_file: Option<&str>) -> Result<Context> {

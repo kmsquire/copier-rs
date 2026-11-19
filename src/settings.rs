@@ -23,10 +23,7 @@ thread_local! {
 /// when several runs share a process.
 pub fn with_locations<T>(default_path: &Path, env_path: Option<&Path>, f: impl FnOnce() -> T) -> T {
     let scoped = (default_path.to_path_buf(), env_path.map(Path::to_path_buf));
-    let previous = LOCATIONS.with(|slot| slot.borrow_mut().replace(scoped));
-    let result = f();
-    LOCATIONS.with(|slot| *slot.borrow_mut() = previous);
-    result
+    crate::scoped::with(&LOCATIONS, Some(scoped), f)
 }
 
 fn env_settings_path() -> Option<PathBuf> {
