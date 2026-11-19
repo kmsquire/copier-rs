@@ -1,0 +1,5 @@
+# Test isolation: ported tests must not read the developer's git config or cache.
+[env]
+GIT_CONFIG_GLOBAL = { value = "tests/fixtures/gitconfig", relative = true, force = true }
+GIT_CONFIG_NOSYSTEM = { value = "1", force = true }
+COPIER_CACHE_DIR = { value = "target/copier-test-cache", relative = true, force = true }
