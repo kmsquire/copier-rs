@@ -139,7 +139,11 @@ impl Git {
     ///
     /// Fails only when git cannot be started.
     pub fn output<S: AsRef<OsStr>>(&self, args: &[S]) -> Result<Output> {
-        Ok(self.command(args).stdin(Stdio::null()).output()?)
+        crate::interrupt::check()?;
+        let output = self.command(args).stdin(Stdio::null()).output()?;
+        // Ctrl-C reaches git too; its failure must surface as the interrupt.
+        crate::interrupt::check()?;
+        Ok(output)
     }
 
     /// Run git and return its stdout.
@@ -167,6 +171,7 @@ impl Git {
     ///
     /// Fails only when git cannot be started.
     pub fn output_with_stdin<S: AsRef<OsStr>>(&self, args: &[S], input: &[u8]) -> Result<Output> {
+        crate::interrupt::check()?;
         let mut child = self
             .command(args)
             .stdin(Stdio::piped())
@@ -177,7 +182,9 @@ impl Git {
             // Git may exit before reading everything; its status tells the real story.
             let _ = stdin.write_all(input);
         }
-        Ok(child.wait_with_output()?)
+        let output = child.wait_with_output()?;
+        crate::interrupt::check()?;
+        Ok(output)
     }
 
     /// Whether git exits successfully.

@@ -158,6 +158,7 @@ impl Worker {
         let mut entries = Vec::new();
         scan_tree(&copy_root, !preserve_symlinks, &mut entries)?;
         for entry in entries {
+            crate::interrupt::check()?;
             let copy_relpath = entry
                 .path
                 .strip_prefix(&copy_root)

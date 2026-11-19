@@ -75,6 +75,7 @@ impl Worker {
             if self.pretend {
                 continue;
             }
+            crate::interrupt::check()?;
             let working_directory = project
                 .join(self.render_string(&task.working_directory.to_string_lossy(), &extra)?);
             let mut process = Process::new(&program);
@@ -92,6 +93,8 @@ impl Worker {
             let status = process.status().map_err(|error| {
                 CopierError::Process(format!("Cannot run task {shown}: {error}"))
             })?;
+            // A task killed by Ctrl-C is an interrupt, not a task failure.
+            crate::interrupt::check()?;
             if !status.success() {
                 let command = match &task.cmd {
                     Command::Shell(_) => py_str_repr(&shown),

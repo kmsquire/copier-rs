@@ -42,6 +42,7 @@ impl Worker {
                 Value::Map(details) => details.clone(),
                 _ => Mapping::new(),
             };
+            crate::interrupt::check()?;
             let outcome = self.examine(&var_name, &details)?;
             self.update_answers(|answers| {
                 if outcome.forget_last {

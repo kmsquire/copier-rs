@@ -60,7 +60,10 @@ impl Worker {
         let project = self.subproject()?.local_abspath.clone();
         let was_existing = project.exists();
         if let Err(error) = self.render_and_run_tasks() {
-            if !was_existing && self.cleanup_on_error {
+            // Like Python's `except Exception`, an interrupt is not an error to
+            // clean up after: the destination stays for the user to inspect.
+            let interrupted = matches!(error, CopierError::Interrupted);
+            if !was_existing && self.cleanup_on_error && !interrupted {
                 match vcs::remove_dir_all(&project) {
                     Ok(()) => {}
                     // Nothing was created yet, so nothing to clean up.

@@ -65,6 +65,9 @@ pub enum CopierError {
     /// The user interrupted the questionnaire.
     #[error("Execution stopped by user")]
     AnswersInterrupt(Box<AnswersInterrupt>),
+    /// The run was interrupted with Ctrl-C.
+    #[error("Execution stopped by user")]
+    Interrupted,
     /// The template uses features that require `--trust`.
     #[error("Template uses potentially unsafe feature{}: {}.\nIf you trust this template, consider adding the `--trust` option when running `copier copy/update`.", if .features.len() == 1 { "" } else { "s" }, .features.join(", "))]
     UnsafeTemplate {
@@ -154,6 +157,7 @@ impl CopierError {
                 | Self::Task { .. }
                 | Self::InteractiveSession(_)
                 | Self::AnswersInterrupt(_)
+                | Self::Interrupted
         )
     }
 

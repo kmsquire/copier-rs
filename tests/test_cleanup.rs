@@ -6,8 +6,16 @@ use std::path::{Path, PathBuf};
 
 use common::{assert_err, file_tree, fixture, git_save, worker, Tmp, ANSWERS_FILE_TMPL};
 use copier::errors::TemplateErrorKind;
-use copier::CopierError;
+use copier::{CopierError, Worker};
 use indoc::indoc;
+
+/// Interrupts are recorded process-wide, so the tests of this file take turns:
+/// a test that triggers one must not interrupt a test running beside it.
+fn serial() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 /// Every path below `dir`, recursively (`dir.glob("**/*")`).
 fn tree_entries(dir: &Path) -> Vec<PathBuf> {
@@ -36,6 +44,7 @@ fn sigint_tasks() -> String {
 
 #[test]
 fn test_cleanup() {
+    let _serial = serial();
     // Copier creates dst_path, fails to copy and removes it.
     let tmp = Tmp::new();
     let dst = tmp.path().join("new_folder");
@@ -51,6 +60,7 @@ fn test_cleanup() {
 
 #[test]
 fn test_do_not_cleanup() {
+    let _serial = serial();
     // Copier creates dst_path, fails to copy and keeps it.
     let tmp = Tmp::new();
     let dst = tmp.path().join("new_folder");
@@ -67,6 +77,7 @@ fn test_do_not_cleanup() {
 
 #[test]
 fn test_no_cleanup_when_folder_existed() {
+    let _serial = serial();
     // Copier will not delete a folder if it didn't create it.
     let tmp = Tmp::new();
     let preexisting_file = tmp.path().join("something");
@@ -85,6 +96,7 @@ fn test_no_cleanup_when_folder_existed() {
 
 #[test]
 fn test_no_cleanup_when_template_in_parent_folder() {
+    let _serial = serial();
     // Copier will not delete a local template in a parent folder.
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -98,45 +110,38 @@ fn test_no_cleanup_when_template_in_parent_folder() {
     assert!(src.exists());
 }
 
+// Python: skipif win32 (`os.kill(pid, SIGINT)` is not supported on Windows).
+#[cfg(unix)]
 #[test]
-#[ignore = "needs-design: SIGINT from a task and tempfile.tempdir/TMPDIR isolation"]
 fn test_cleanup_on_interrupt_during_copy_task() {
     // Test cleaning up when copy is interrupted during task.
+    let _serial = serial();
     let root = Tmp::new();
-    let (src, _dst) = root.src_dst();
+    let (src, dst) = root.src_dst();
     let tmp = root.mktemp("tmp");
-
-    // TODO(port): monkeypatch tempfile.tempdir and TMPDIR to `tmp`; the Rust
-    // crate has no hook for the temp root (`Tmp` uses the system temp dir).
-    // monkeypatch.setattr(tempfile, "tempdir", str(tmp))
-    // monkeypatch.setenv("TMPDIR", str(tmp))
 
     file_tree! {
         src.join("copier.yml") => sigint_tasks(),
     };
     git_save(&src, "Test commit", Some("v1"));
 
-    // TODO(port): the task sends SIGINT to the test process itself, which would
-    // kill the Rust test harness; the copy must raise KeyboardInterrupt instead.
-    // with pytest.raises(KeyboardInterrupt):
-    //     copier.run_copy(str(src), dst, unsafe=True)
-    // worker(&src, &_dst).unsafe_(true).run_copy()
+    // Isolate the temp root so we only see clone dirs created by this test.
+    let result =
+        copier::tools::with_temp_root(&tmp, || worker(&src, &dst).unsafe_(true).run_copy());
+    assert_err!(result, CopierError::Interrupted);
 
     assert!(tree_entries(&tmp).is_empty());
 }
 
+// Python: skipif win32 (`os.kill(pid, SIGINT)` is not supported on Windows).
+#[cfg(unix)]
 #[test]
-#[ignore = "needs-design: SIGINT from a task and tempfile.tempdir/TMPDIR isolation"]
 fn test_cleanup_on_interrupt_during_update_task() {
     // Test cleaning up when update is interrupted during task.
+    let _serial = serial();
     let root = Tmp::new();
     let (src, dst) = root.src_dst();
     let tmp = root.mktemp("tmp");
-
-    // TODO(port): monkeypatch tempfile.tempdir and TMPDIR to `tmp`; the Rust
-    // crate has no hook for the temp root (`Tmp` uses the system temp dir).
-    // monkeypatch.setattr(tempfile, "tempdir", str(tmp))
-    // monkeypatch.setenv("TMPDIR", str(tmp))
 
     file_tree! {
         src.join(ANSWERS_FILE_TMPL) => "{{ _copier_answers|to_yaml }}",
@@ -148,71 +153,50 @@ fn test_cleanup_on_interrupt_during_update_task() {
     };
     git_save(&src, "Test commit", Some("v2"));
 
-    worker(&src, &dst).vcs_ref("v1").run_copy().unwrap();
-    git_save(&dst, "Test commit", None);
+    // Isolate the temp root so we only see clone dirs created by this test.
+    copier::tools::with_temp_root(&tmp, || {
+        worker(&src, &dst).vcs_ref("v1").run_copy().unwrap();
+        git_save(&dst, "Test commit", None);
 
-    // TODO(port): the task sends SIGINT to the test process itself, which would
-    // kill the Rust test harness; the update must raise KeyboardInterrupt instead.
-    // with pytest.raises(KeyboardInterrupt):
-    //     copier.run_update(dst, overwrite=True, unsafe=True)
-    // Worker::new().dst_path(&dst).overwrite(true).unsafe_(true).run_update()
+        let result = Worker::new()
+            .dst_path(&dst)
+            .overwrite(true)
+            .unsafe_(true)
+            .run_update();
+        assert_err!(result, CopierError::Interrupted);
+    });
 
     assert!(tree_entries(&tmp).is_empty());
 }
 
 #[test]
-#[ignore = "needs-design: patches plumbing's Popen to raise SIGINT during git clone"]
 fn test_cleanup_on_interrupt_during_git_clone() {
     // Test cleaning up when copy is interrupted during git clone.
+    let _serial = serial();
     let root = Tmp::new();
-    let (src, _dst) = root.src_dst();
+    let (src, dst) = root.src_dst();
     let tmp = root.mktemp("tmp");
-
-    // TODO(port): monkeypatch tempfile.tempdir and TMPDIR to `tmp`; the Rust
-    // crate has no hook for the temp root (`Tmp` uses the system temp dir).
-    // monkeypatch.setattr(tempfile, "tempdir", str(tmp))
-    // monkeypatch.setenv("TMPDIR", str(tmp))
 
     file_tree! {
         src.join(ANSWERS_FILE_TMPL) => "{{ _copier_answers|to_yaml }}",
     };
     git_save(&src, "Test commit", Some("v1"));
 
-    // TODO(port): no hook to intercept the git clone subprocess and raise SIGINT.
-    // original_popen = subprocess.Popen
-    //
-    // def interrupting_popen(args, *a, **kw):
-    //     cmd_list = list(args) if isinstance(args, (list, tuple)) else [args]
-    //     is_git_clone = (
-    //         len(cmd_list) >= 2
-    //         and Path(str(cmd_list[0])).stem == "git"
-    //         and "clone" in cmd_list
-    //     )
-    //     if is_git_clone:
-    //         # `signal.raise_signal` works on both POSIX and Windows, whereas
-    //         # `os.kill(os.getpid(), SIGINT)` would terminate the process on Windows
-    //         # instead of raising `KeyboardInterrupt`.
-    //         signal.raise_signal(signal.SIGINT)
-    //     return original_popen(args, *a, **kw)
-    //
-    // `plumbum.machines.local` executes `from subprocess import Popen` at import
-    // time, this is what we need to patch, but this module actually returns a
-    // `LocalMachine` instance via plumbum's module-replacement magic. The real module
-    // is accessible via `sys.modules`.
-    // import plumbum.machines.local  # noqa: F401  (ensure module is loaded into sys.modules)
-    //
-    // monkeypatch.setattr(
-    //     sys.modules["plumbum.machines.local"], "Popen", interrupting_popen
-    // )
-
-    // with pytest.raises(KeyboardInterrupt):
-    //     copier.run_copy(str(src), dst)
+    // Python patches `Popen` to raise SIGINT when `git clone` starts. Here the
+    // interrupt is recorded up front, so it is noticed at the first git command
+    // of the clone, after the temporary checkout directory has been created.
+    let result = copier::tools::with_temp_root(&tmp, || {
+        copier::interrupt::raise();
+        worker(&src, &dst).run_copy()
+    });
+    assert_err!(result, CopierError::Interrupted);
 
     assert!(tree_entries(&tmp).is_empty());
 }
 
 #[test]
 fn test_cleanup_does_not_mask_render_error() {
+    let _serial = serial();
     // Copier reports the render error, not a failure from its own cleanup.
     let tmp = Tmp::new();
     let src = tmp.path().join("src");

@@ -519,7 +519,8 @@ impl Worker {
     /// Fails on invalid configuration or answers, unsafe features without trust,
     /// failing tasks, or I/O errors.
     pub fn run_copy(mut self) -> Result<Self> {
-        self.copy()?;
+        crate::interrupt::install();
+        guard_interrupts(self.copy())?;
         Ok(self)
     }
 
@@ -530,7 +531,8 @@ impl Worker {
     ///
     /// Fails when the project has no recorded template, or as [`Worker::run_copy`].
     pub fn run_recopy(mut self) -> Result<Self> {
-        self.recopy()?;
+        crate::interrupt::install();
+        guard_interrupts(self.recopy())?;
         Ok(self)
     }
 
@@ -541,9 +543,19 @@ impl Worker {
     /// Fails when the project is not a clean git repository, lacks recorded template
     /// data, would be downgraded, or as [`Worker::run_copy`].
     pub fn run_update(mut self) -> Result<Self> {
-        self.update()?;
+        crate::interrupt::install();
+        guard_interrupts(self.update())?;
         Ok(self)
     }
+}
+
+/// Make sure Ctrl-C is being recorded and report a recorded one exactly once: after
+/// the run that noticed it returns, the next run starts clean.
+fn guard_interrupts(outcome: Result<()>) -> Result<()> {
+    if matches!(outcome, Err(CopierError::Interrupted)) {
+        crate::interrupt::clear();
+    }
+    outcome
 }
 
 /// Adapter so a boxed prompter can live behind the shared trait object.

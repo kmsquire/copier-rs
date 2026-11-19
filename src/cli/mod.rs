@@ -199,6 +199,7 @@ where
         }
         Err(UsageError::Invalid(message)) => return usage_error(&message, spec.help),
     };
+    crate::interrupt::install();
     let outcome = if spec.name == "check-update" {
         check_update(&parsed)
     } else {
