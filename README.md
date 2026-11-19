@@ -66,6 +66,7 @@ build, small template with three questions and one task); treat it as indicative
 | copy from a plain directory | 0.71 s | 0.12 s |
 | copy from a git repository | 1.23 s | 0.25 s |
 | update (one local edit) | 4.6 s | 0.75 s |
+| copy of a 2,000-file template | 55 s | 1.0 s |
 
 Git is still driven through its command line. After removing redundant calls,
 what remains of a copy is mostly git's own clone and checkout.

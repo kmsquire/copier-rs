@@ -228,13 +228,18 @@ pub fn is_git_available() -> bool {
     if GIT_HIDDEN.with(|slot| *slot.borrow()) {
         return false;
     }
-    let names: &[&str] = if cfg!(windows) {
-        &["git.exe", "git"]
-    } else {
-        &["git"]
-    };
-    std::env::var_os("PATH").is_some_and(|path| {
-        std::env::split_paths(&path).any(|dir| names.iter().any(|name| dir.join(name).is_file()))
+    // Asked once per rendered file; the answer does not change during a run.
+    static ON_PATH: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON_PATH.get_or_init(|| {
+        let names: &[&str] = if cfg!(windows) {
+            &["git.exe", "git"]
+        } else {
+            &["git"]
+        };
+        std::env::var_os("PATH").is_some_and(|path| {
+            std::env::split_paths(&path)
+                .any(|dir| names.iter().any(|name| dir.join(name).is_file()))
+        })
     })
 }
 

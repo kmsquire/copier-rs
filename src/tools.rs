@@ -180,25 +180,27 @@ pub fn escape_git_path(path: &str) -> String {
 /// exist (Python's `Path.resolve()`): the existing part is resolved on disk, the
 /// rest lexically.
 pub fn resolve(path: &std::path::Path) -> std::path::PathBuf {
-    use std::path::{Component, PathBuf};
+    use std::path::Component;
     let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
-    let mut resolved = PathBuf::new();
-    let mut on_disk = true;
-    for component in absolute.components() {
+    // Resolve the longest existing prefix with one system call per attempt (the
+    // whole path first: the common cases are "exists" and "only the leaf is new"),
+    // then apply what is left lexically.
+    let (mut resolved, existing_len) = absolute
+        .ancestors()
+        .find_map(|ancestor| {
+            ancestor
+                .canonicalize()
+                .ok()
+                .map(|real| (real, ancestor.components().count()))
+        })
+        .unwrap_or_default();
+    for component in absolute.components().skip(existing_len) {
         match component {
             Component::ParentDir => {
                 resolved.pop();
             }
             Component::CurDir => {}
-            other => {
-                resolved.push(other);
-                if on_disk {
-                    match resolved.canonicalize() {
-                        Ok(canonical) => resolved = canonical,
-                        Err(_) => on_disk = false,
-                    }
-                }
-            }
+            other => resolved.push(other),
         }
     }
     resolved
@@ -296,6 +298,30 @@ mod tests {
         assert_eq!(py_int("0x10"), None);
         assert_eq!(py_int("1.0"), None);
         assert_eq!(py_int("-7"), Some(-7));
+    }
+
+    #[test]
+    fn resolve_handles_missing_tails_and_symlinks() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        std::fs::create_dir(root.join("real")).unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(root.join("real"), root.join("link")).unwrap();
+        assert_eq!(resolve(&root.join("real")), root.join("real"));
+        assert_eq!(
+            resolve(&root.join("real/new/file.txt")),
+            root.join("real/new/file.txt")
+        );
+        assert_eq!(resolve(&root.join("missing/../other")), root.join("other"));
+        assert_eq!(resolve(&root.join("real/./x/../y")), root.join("real/y"));
+        #[cfg(unix)]
+        {
+            assert_eq!(
+                resolve(&root.join("link/new.txt")),
+                root.join("real/new.txt")
+            );
+            assert_eq!(resolve(&root.join("link/../up.txt")), root.join("up.txt"));
+        }
     }
 
     #[test]
