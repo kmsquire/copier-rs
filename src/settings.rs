@@ -38,9 +38,7 @@ impl Settings {
 ///
 /// Returns [`CopierError::Settings`] when the file is not valid.
 pub fn load_settings(path: Option<&Path>) -> Result<Settings> {
-    let env_path = std::env::var_os(ENV_VAR)
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from);
+    let env_path = std::env::var_os(ENV_VAR).filter(|value| !value.is_empty()).map(PathBuf::from);
     let path = match (path, &env_path) {
         (Some(path), _) => path.to_path_buf(),
         (None, Some(env_path)) => env_path.clone(),
@@ -48,22 +46,16 @@ pub fn load_settings(path: Option<&Path>) -> Result<Settings> {
     };
     if !path.is_file() {
         if let Some(env_path) = env_path {
-            warn(
-                WarningKind::MissingSettings,
-                format!("Settings file not found at {}", env_path.display()),
-            );
+            warn(WarningKind::MissingSettings, format!("Settings file not found at {}", env_path.display()));
         }
         return Ok(Settings::default());
     }
-    let invalid_yaml =
-        |err: yaml::YamlError| CopierError::Settings(format!("Invalid YAML data: {err}"));
+    let invalid_yaml = |err: yaml::YamlError| CopierError::Settings(format!("Invalid YAML data: {err}"));
     let text = yaml::decode(&std::fs::read(&path)?).map_err(invalid_yaml)?;
     let data = yaml::load(&text).map_err(invalid_yaml)?;
     validate(data).map_err(|problems| {
-        let lines: Vec<String> = problems
-            .iter()
-            .map(|(location, message)| format!("  {location}:\n    {message}"))
-            .collect();
+        let lines: Vec<String> =
+            problems.iter().map(|(location, message)| format!("  {location}:\n    {message}")).collect();
         CopierError::Settings(format!("Invalid format:\n{}", lines.join("\n")))
     })
 }
@@ -92,10 +84,7 @@ fn validate(data: Value) -> std::result::Result<Settings, Vec<(String, String)>>
                 settings.defaults.insert(key.clone(), value.clone());
             }
         }
-        Some(_) => problems.push((
-            "defaults".to_owned(),
-            "Input should be a valid dictionary".to_owned(),
-        )),
+        Some(_) => problems.push(("defaults".to_owned(), "Input should be a valid dictionary".to_owned())),
     }
     match data.get(&Value::from("trust")) {
         None => {}
@@ -104,10 +93,7 @@ fn validate(data: Value) -> std::result::Result<Settings, Vec<(String, String)>>
                 match item.as_str() {
                     Some(text) if settings.trust.iter().any(|known| known == text) => {}
                     Some(text) => settings.trust.push(text.to_owned()),
-                    None => problems.push((
-                        format!("trust.{index}"),
-                        "Input should be a valid string".to_owned(),
-                    )),
+                    None => problems.push((format!("trust.{index}"), "Input should be a valid string".to_owned())),
                 }
             }
         }
@@ -197,13 +183,7 @@ fn split_url(url: &str) -> SplitUrl<'_> {
         Some((before, query)) => (before, Some(query)),
         None => (rest, None),
     };
-    SplitUrl {
-        scheme,
-        netloc,
-        path,
-        query,
-        fragment,
-    }
+    SplitUrl { scheme, netloc, path, query, fragment }
 }
 
 /// Schemes for which Python's `urlunsplit` writes `//` even with an empty host.
@@ -273,9 +253,7 @@ fn is_safe_url(url: &str) -> bool {
     if segments.last() == Some(&"") {
         segments.pop();
     }
-    segments
-        .iter()
-        .all(|segment| SAFE_SEGMENT.is_match(segment))
+    segments.iter().all(|segment| SAFE_SEGMENT.is_match(segment))
 }
 
 /// Normalize `url` for trust comparison: resolve `.`/`..` segments, keeping a
@@ -364,32 +342,17 @@ mod tests {
 
     #[test]
     fn url_normalization() {
-        assert_eq!(
-            normalize("https://github.com/user/../evil/repo.git"),
-            "https://github.com/evil/repo.git"
-        );
+        assert_eq!(normalize("https://github.com/user/../evil/repo.git"), "https://github.com/evil/repo.git");
         assert_eq!(normalize("gh:user/./repo/"), "gh:user/repo/");
-        assert_eq!(
-            normalize("git@github.com:user//repo.git"),
-            "git@github.com:user/repo.git"
-        );
+        assert_eq!(normalize("git@github.com:user//repo.git"), "git@github.com:user/repo.git");
         assert_eq!(normalize("https://github.com"), "https://github.com");
     }
 
     #[test]
     fn unsafe_urls_only_match_exactly() {
         let trust = ["https://github.com/user/"];
-        assert!(is_trusted_repository(
-            &trust,
-            "https://github.com/user/repo.git"
-        ));
-        assert!(!is_trusted_repository(
-            &trust,
-            "https://github.com/user/%2e%2e/evil.git"
-        ));
-        assert!(is_trusted_repository(
-            &["https://x/a%20b"],
-            "https://x/a%20b"
-        ));
+        assert!(is_trusted_repository(&trust, "https://github.com/user/repo.git"));
+        assert!(!is_trusted_repository(&trust, "https://github.com/user/%2e%2e/evil.git"));
+        assert!(is_trusted_repository(&["https://x/a%20b"], "https://x/a%20b"));
     }
 }

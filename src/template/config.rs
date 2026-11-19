@@ -8,12 +8,7 @@ use crate::value::{Mapping, Value};
 use crate::yaml::{self, LoadError, TaggedNode};
 
 /// Settings whose values are concatenated across documents instead of overridden.
-const MERGED_OPTIONS: &[&str] = &[
-    "_exclude",
-    "_jinja_extensions",
-    "_secret_questions",
-    "_skip_if_exists",
-];
+const MERGED_OPTIONS: &[&str] = &["_exclude", "_jinja_extensions", "_secret_questions", "_skip_if_exists"];
 
 /// Load a `copier.yml`, resolving `!include` tags and merging multiple documents.
 ///
@@ -32,15 +27,9 @@ pub fn load_template_config(conf_path: &Path, quiet: bool) -> Result<Value> {
         LoadError::Custom(err) => err,
         LoadError::Yaml(err) => {
             if !quiet {
-                output::printf_exception(
-                    &err.to_string(),
-                    "INVALID CONFIG FILE",
-                    &conf_path.display().to_string(),
-                );
+                output::printf_exception(&err.to_string(), "INVALID CONFIG FILE", &conf_path.display().to_string());
             }
-            CopierError::InvalidConfigFile {
-                conf_path: conf_path.to_path_buf(),
-            }
+            CopierError::InvalidConfigFile { conf_path: conf_path.to_path_buf() }
         }
     })?;
     let mut merged = Mapping::new();
@@ -51,14 +40,9 @@ pub fn load_template_config(conf_path: &Path, quiet: bool) -> Result<Value> {
             match document.get(&key) {
                 Some(Value::Seq(values)) => items.extend(values.iter().cloned()),
                 // Python extends a list with the characters of a string and fails on scalars.
-                Some(Value::Str(text)) => {
-                    items.extend(text.chars().map(|ch| Value::Str(ch.to_string())))
-                }
+                Some(Value::Str(text)) => items.extend(text.chars().map(|ch| Value::Str(ch.to_string()))),
                 Some(other) => {
-                    return Err(CopierError::Type(format!(
-                        "'{}' object is not iterable",
-                        other.py_type_name()
-                    )))
+                    return Err(CopierError::Type(format!("'{}' object is not iterable", other.py_type_name())))
                 }
                 None => {}
             }
@@ -91,8 +75,7 @@ pub fn load_template_config(conf_path: &Path, quiet: bool) -> Result<Value> {
 fn load_documents(path: &Path, conf_path: &Path) -> std::result::Result<Vec<Mapping>, LoadError> {
     let bytes = std::fs::read(path).map_err(|err| LoadError::Custom(err.into()))?;
     let text = yaml::decode(&bytes)?;
-    let mut handler =
-        |tag: &str, node: TaggedNode<'_>| (tag == "!include").then(|| include(node, conf_path));
+    let mut handler = |tag: &str, node: TaggedNode<'_>| (tag == "!include").then(|| include(node, conf_path));
     let loaded = yaml::load_all_with(&text, &mut handler)?;
     let mut documents = Vec::new();
     flatten(loaded, &mut documents);
@@ -113,24 +96,13 @@ fn flatten(values: Vec<Value>, out: &mut Vec<Mapping>) {
 
 fn include(node: TaggedNode<'_>, conf_path: &Path) -> Result<Value> {
     let TaggedNode::Scalar(pattern) = node else {
-        let kind = if node == TaggedNode::Sequence {
-            "SequenceNode"
-        } else {
-            "MappingNode"
-        };
-        return Err(CopierError::Type(format!(
-            "Unsupported YAML node: {kind}(tag='!include')"
-        )));
+        let kind = if node == TaggedNode::Sequence { "SequenceNode" } else { "MappingNode" };
+        return Err(CopierError::Type(format!("Unsupported YAML node: {kind}(tag='!include')")));
     };
     if pattern.starts_with('/') {
-        return Err(CopierError::Value(
-            "YAML include file path must be a relative path".to_owned(),
-        ));
+        return Err(CopierError::Value("YAML include file path must be a relative path".to_owned()));
     }
-    let template_root = conf_path
-        .parent()
-        .unwrap_or(Path::new("."))
-        .canonicalize()?;
+    let template_root = conf_path.parent().unwrap_or(Path::new(".")).canonicalize()?;
     let mut data = Vec::new();
     for include_file in glob(&template_root, pattern)? {
         let include_file = include_file.canonicalize()?;
@@ -142,9 +114,7 @@ fn include(node: TaggedNode<'_>, conf_path: &Path) -> Result<Value> {
         }
         let documents = load_documents(&include_file, conf_path).map_err(|err| match err {
             LoadError::Custom(err) => err,
-            LoadError::Yaml(_) => CopierError::InvalidConfigFile {
-                conf_path: include_file.clone(),
-            },
+            LoadError::Yaml(_) => CopierError::InvalidConfigFile { conf_path: include_file.clone() },
         })?;
         data.extend(documents.into_iter().map(Value::Map));
     }
@@ -155,10 +125,7 @@ fn include(node: TaggedNode<'_>, conf_path: &Path) -> Result<Value> {
 /// and literal components. Matches are returned sorted.
 fn glob(root: &Path, pattern: &str) -> Result<Vec<std::path::PathBuf>> {
     let mut candidates = vec![root.to_path_buf()];
-    for component in pattern
-        .split('/')
-        .filter(|part| !part.is_empty() && *part != ".")
-    {
+    for component in pattern.split('/').filter(|part| !part.is_empty() && *part != ".") {
         let mut next = Vec::new();
         for candidate in candidates {
             if component == ".." || !component.contains(['*', '?', '[']) {
@@ -173,9 +140,7 @@ fn glob(root: &Path, pattern: &str) -> Result<Vec<std::path::PathBuf>> {
             };
             let mut matched: Vec<_> = entries
                 .flatten()
-                .filter(|entry| {
-                    crate::tools::fnmatch(&entry.file_name().to_string_lossy(), component)
-                })
+                .filter(|entry| crate::tools::fnmatch(&entry.file_name().to_string_lossy(), component))
                 .map(|entry| entry.path())
                 .collect();
             matched.sort();

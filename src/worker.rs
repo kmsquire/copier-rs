@@ -213,10 +213,7 @@ impl Worker {
     }
 
     /// Set extra skip-if-exists patterns.
-    pub fn skip_if_exists<S: Into<String>>(
-        mut self,
-        patterns: impl IntoIterator<Item = S>,
-    ) -> Self {
+    pub fn skip_if_exists<S: Into<String>>(mut self, patterns: impl IntoIterator<Item = S>) -> Self {
         self.skip_if_exists = to_strings(patterns);
         self
     }
@@ -350,10 +347,6 @@ impl Worker {
 /// # Errors
 ///
 /// Fails when the project lacks the recorded template data needed to compare versions.
-pub fn get_update_data(
-    _dst_path: &Path,
-    _answers_file: Option<&Path>,
-    _use_prereleases: bool,
-) -> Result<UpdateData> {
+pub fn get_update_data(_dst_path: &Path, _answers_file: Option<&Path>, _use_prereleases: bool) -> Result<UpdateData> {
     todo!("get_update_data")
 }

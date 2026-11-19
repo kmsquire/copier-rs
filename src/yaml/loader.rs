@@ -7,8 +7,7 @@ use std::iter::Peekable;
 use saphyr_parser::{Event, Parser, ScalarStyle, Span, Tag};
 
 use super::resolver::{
-    construct_bool, construct_float, construct_int, construct_timestamp, implicit_kind,
-    resolve_plain, Implicit,
+    construct_bool, construct_float, construct_int, construct_timestamp, implicit_kind, resolve_plain, Implicit,
 };
 use crate::errors::CopierError;
 use crate::value::{Mapping, Value};
@@ -32,11 +31,7 @@ impl fmt::Display for YamlError {
         if self.message.contains("\n  in \"") {
             return f.write_str(&self.message);
         }
-        write!(
-            f,
-            "{}\n  in \"<unicode string>\", line {}, column {}",
-            self.message, self.line, self.column
-        )
+        write!(f, "{}\n  in \"<unicode string>\", line {}, column {}", self.message, self.line, self.column)
     }
 }
 
@@ -81,8 +76,7 @@ pub enum TaggedNode<'a> {
 
 /// Handler for application tags: gets the tag (e.g. `!include`) and its node, and
 /// returns `None` when it does not know the tag.
-pub type TagHandler<'a> =
-    dyn FnMut(&str, TaggedNode<'_>) -> Option<Result<Value, CopierError>> + 'a;
+pub type TagHandler<'a> = dyn FnMut(&str, TaggedNode<'_>) -> Option<Result<Value, CopierError>> + 'a;
 
 /// Load the single document in `text` (`yaml.safe_load`); an empty stream is `Null`.
 ///
@@ -94,8 +88,7 @@ pub fn load(text: &str) -> Result<Value, YamlError> {
     let first = documents.next().unwrap_or(Value::Null);
     if documents.next().is_some() {
         return Err(YamlError {
-            message: "expected a single document in the stream\nbut found another document"
-                .to_owned(),
+            message: "expected a single document in the stream\nbut found another document".to_owned(),
             line: 1,
             column: 1,
         });
@@ -112,11 +105,7 @@ pub fn load_all(text: &str) -> Result<Vec<Value>, YamlError> {
     load_all_with(text, &mut |_, _| None).map_err(|err| match err {
         LoadError::Yaml(err) => err,
         // The no-op handler never produces custom errors.
-        LoadError::Custom(err) => YamlError {
-            message: err.to_string(),
-            line: 1,
-            column: 1,
-        },
+        LoadError::Custom(err) => YamlError { message: err.to_string(), line: 1, column: 1 },
     })
 }
 
@@ -129,11 +118,7 @@ pub fn load_all(text: &str) -> Result<Vec<Value>, YamlError> {
 pub fn load_all_with(text: &str, handler: &mut TagHandler<'_>) -> Result<Vec<Value>, LoadError> {
     check_printable(text, "<unicode string>")?;
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
-    let mut loader = Loader {
-        events: Parser::new_from_str(text).peekable(),
-        anchors: HashMap::new(),
-        handler,
-    };
+    let mut loader = Loader { events: Parser::new_from_str(text).peekable(), anchors: HashMap::new(), handler };
     let mut documents = Vec::new();
     loop {
         match loader.next_event()? {
@@ -167,16 +152,12 @@ pub fn decode(bytes: &[u8]) -> Result<String, YamlError> {
     };
     if let Some(rest) = bytes.strip_prefix(&[0xFF, 0xFE]) {
         utf16(
-            rest.chunks(2)
-                .map(|pair| u16::from_le_bytes([pair[0], *pair.get(1).unwrap_or(&0)]))
-                .collect(),
+            rest.chunks(2).map(|pair| u16::from_le_bytes([pair[0], *pair.get(1).unwrap_or(&0)])).collect(),
             "utf-16-le",
         )
     } else if let Some(rest) = bytes.strip_prefix(&[0xFE, 0xFF]) {
         utf16(
-            rest.chunks(2)
-                .map(|pair| u16::from_be_bytes([pair[0], *pair.get(1).unwrap_or(&0)]))
-                .collect(),
+            rest.chunks(2).map(|pair| u16::from_be_bytes([pair[0], *pair.get(1).unwrap_or(&0)])).collect(),
             "utf-16-be",
         )
     } else {
@@ -210,12 +191,75 @@ fn check_printable(text: &str, name: &str) -> Result<(), YamlError> {
     }
 }
 
-fn error_at(message: impl Into<String>, span: Span) -> YamlError {
-    YamlError {
-        message: message.into(),
-        line: span.start.line(),
-        column: span.start.col() + 1,
+/// Raw source text of each item of the YAML list in `text`, with the quotes of
+/// quoted strings removed (Copier's `parse_yaml_list`). `None` when `text` is not
+/// a list.
+///
+/// # Errors
+///
+/// Fails on invalid YAML.
+pub fn list_item_sources(text: &str) -> Result<Option<Vec<String>>, YamlError> {
+    check_printable(text, "<unicode string>")?;
+    let offsets: Vec<usize> = text.char_indices().map(|(offset, _)| offset).chain([text.len()]).collect();
+    let slice =
+        |start: usize, end: usize| &text[offsets[start.min(offsets.len() - 1)]..offsets[end.min(offsets.len() - 1)]];
+    let mut depth = 0usize;
+    let mut item_start = None;
+    let mut items = Vec::new();
+    let mut is_list = false;
+    for event in Parser::new_from_str(text) {
+        let (event, span) = event.map_err(|err| YamlError {
+            message: err.info().to_owned(),
+            line: err.marker().line(),
+            column: err.marker().col() + 1,
+        })?;
+        let (opens, closes, quoted_text) = match &event {
+            Event::SequenceStart(..) | Event::MappingStart(..) => (true, false, false),
+            Event::SequenceEnd | Event::MappingEnd => (false, true, false),
+            Event::Scalar(_, style, _, tag) => {
+                let is_text = match tag {
+                    Some(tag) => tag_name(tag) == format!("{CORE_TAG_PREFIX}str"),
+                    None => true,
+                };
+                (false, false, is_text && matches!(style, ScalarStyle::SingleQuoted | ScalarStyle::DoubleQuoted))
+            }
+            Event::Alias(_) => (false, false, false),
+            _ => continue,
+        };
+        if depth == 0 {
+            if !opens || !matches!(event, Event::SequenceStart(..)) {
+                return Ok(None);
+            }
+            is_list = true;
+            depth = 1;
+            continue;
+        }
+        if closes {
+            depth -= 1;
+            if depth == 0 {
+                break;
+            }
+        }
+        if depth == 1 && !closes {
+            item_start = Some(span.start.index());
+        }
+        if opens {
+            depth += 1;
+            continue;
+        }
+        if depth == 1 {
+            if let Some(start) = item_start.take() {
+                let raw = slice(start, span.end.index()).trim();
+                let unquoted = (quoted_text && raw.len() >= 2).then(|| &raw[1..raw.len() - 1]);
+                items.push(unquoted.unwrap_or(raw).to_owned());
+            }
+        }
     }
+    Ok(is_list.then_some(items))
+}
+
+fn error_at(message: impl Into<String>, span: Span) -> YamlError {
+    YamlError { message: message.into(), line: span.start.line(), column: span.start.col() + 1 }
 }
 
 struct Loader<'input, 'handler, 'h> {
@@ -233,39 +277,23 @@ impl<'input> Loader<'input, '_, '_> {
                 line: err.marker().line(),
                 column: err.marker().col() + 1,
             }),
-            None => Err(YamlError {
-                message: "unexpected end of stream".to_owned(),
-                line: 1,
-                column: 1,
-            }),
+            None => Err(YamlError { message: "unexpected end of stream".to_owned(), line: 1, column: 1 }),
         }
     }
 
     fn node(&mut self, event: Event<'input>, span: Span) -> Result<Value, LoadError> {
         let (anchor, value) = match event {
             Event::Alias(id) => {
-                return self
-                    .anchors
-                    .get(&id)
-                    .cloned()
-                    .ok_or_else(|| error_at("found undefined alias", span).into());
+                return self.anchors.get(&id).cloned().ok_or_else(|| error_at("found undefined alias", span).into());
             }
-            Event::Scalar(text, style, anchor, tag) => {
-                (anchor, self.scalar(&text, style, tag.as_deref(), span)?)
-            }
+            Event::Scalar(text, style, anchor, tag) => (anchor, self.scalar(&text, style, tag.as_deref(), span)?),
             Event::SequenceStart(anchor, tag) => {
                 let items = self.sequence()?;
-                (
-                    anchor,
-                    self.tagged_collection(Value::Seq(items), tag.as_deref(), span)?,
-                )
+                (anchor, self.tagged_collection(Value::Seq(items), tag.as_deref(), span)?)
             }
             Event::MappingStart(anchor, tag) => {
                 let map = self.mapping(span)?;
-                (
-                    anchor,
-                    self.tagged_collection(Value::Map(map), tag.as_deref(), span)?,
-                )
+                (anchor, self.tagged_collection(Value::Map(map), tag.as_deref(), span)?)
             }
             _ => return Err(error_at("expected a node", span).into()),
         };
@@ -275,13 +303,7 @@ impl<'input> Loader<'input, '_, '_> {
         Ok(value)
     }
 
-    fn scalar(
-        &mut self,
-        text: &str,
-        style: ScalarStyle,
-        tag: Option<&Tag>,
-        span: Span,
-    ) -> Result<Value, LoadError> {
+    fn scalar(&mut self, text: &str, style: ScalarStyle, tag: Option<&Tag>, span: Span) -> Result<Value, LoadError> {
         let construct_error = |message: String| LoadError::Yaml(error_at(message, span));
         let Some(tag) = tag.filter(|tag| !is_non_specific(tag)) else {
             // The non-specific tag `!` leaves plain scalars to implicit resolution.
@@ -303,12 +325,7 @@ impl<'input> Loader<'input, '_, '_> {
         }
     }
 
-    fn tagged_collection(
-        &mut self,
-        value: Value,
-        tag: Option<&Tag>,
-        span: Span,
-    ) -> Result<Value, LoadError> {
+    fn tagged_collection(&mut self, value: Value, tag: Option<&Tag>, span: Span) -> Result<Value, LoadError> {
         let Some(tag) = tag.filter(|tag| !is_non_specific(tag)) else {
             return Ok(value);
         };
@@ -323,11 +340,7 @@ impl<'input> Loader<'input, '_, '_> {
     fn custom(&mut self, name: &str, node: TaggedNode<'_>, span: Span) -> Result<Value, LoadError> {
         match (self.handler)(name, node) {
             Some(result) => result.map_err(LoadError::Custom),
-            None => Err(error_at(
-                format!("could not determine a constructor for the tag '{name}'"),
-                span,
-            )
-            .into()),
+            None => Err(error_at(format!("could not determine a constructor for the tag '{name}'"), span).into()),
         }
     }
 
@@ -389,8 +402,7 @@ impl<'input> Loader<'input, '_, '_> {
 /// variants differ: `1 == 1.0 == True` share one dict slot.
 fn python_equal_key(map: &Mapping, key: &Value) -> Option<usize> {
     let number = numeric(key)?;
-    map.keys()
-        .position(|existing| existing != key && numeric(existing) == Some(number))
+    map.keys().position(|existing| existing != key && numeric(existing) == Some(number))
 }
 
 fn numeric(value: &Value) -> Option<f64> {
@@ -416,10 +428,7 @@ fn merge_pairs(value: Value, span: Span) -> Result<Vec<(Value, Value)>, YamlErro
             }
             Ok(pairs)
         }
-        _ => Err(error_at(
-            "expected a mapping or list of mappings for merging",
-            span,
-        )),
+        _ => Err(error_at("expected a mapping or list of mappings for merging", span)),
     }
 }
 
@@ -444,26 +453,18 @@ mod tests {
     #[test]
     fn scalars_and_collections() {
         let value = loaded("a: yes\nb: '1'\nc: [1, 2.5, ~]\nd:\n  e: 0x10\n");
-        assert_eq!(
-            value,
-            json!({"a": true, "b": "1", "c": [1, 2.5, null], "d": {"e": 16}}).into()
-        );
+        assert_eq!(value, json!({"a": true, "b": "1", "c": [1, 2.5, null], "d": {"e": 16}}).into());
     }
 
     #[test]
     fn explicit_tags() {
         let value = loaded("a: !!str 1\nb: !!int '010'\nc: !!float 1\nd: ! 12\ne: ! '12'\n");
-        assert_eq!(
-            value,
-            json!({"a": "1", "b": 8, "c": 1.0, "d": 12, "e": "12"}).into()
-        );
+        assert_eq!(value, json!({"a": "1", "b": 8, "c": 1.0, "d": 12, "e": "12"}).into());
     }
 
     #[test]
     fn anchors_and_merge_keys() {
-        let value = loaded(
-            "base: &b {x: 1, y: 2}\nother: &o {y: 9, z: 3}\nm:\n  <<: [*b, *o]\n  x: 5\n  w: 0\n",
-        );
+        let value = loaded("base: &b {x: 1, y: 2}\nother: &o {y: 9, z: 3}\nm:\n  <<: [*b, *o]\n  x: 5\n  w: 0\n");
         let merged = &value["m"];
         assert_eq!(merged, &json!({"y": 2, "z": 3, "x": 5, "w": 0}).into());
         let keys: Vec<String> = merged.as_map().unwrap().keys().map(Value::py_str).collect();
@@ -478,20 +479,14 @@ mod tests {
 
     #[test]
     fn non_string_keys() {
-        assert_eq!(
-            loaded("1: a\ntrue: b\n~: c\n").py_repr(),
-            "{1: 'b', None: 'c'}"
-        );
+        assert_eq!(loaded("1: a\ntrue: b\n~: c\n").py_repr(), "{1: 'b', None: 'c'}");
     }
 
     #[test]
     fn documents() {
         assert_eq!(loaded(""), Value::Null);
         assert_eq!(load_all("a: 1\n---\n- 2\n").unwrap().len(), 2);
-        assert!(load("a: 1\n---\nb: 2\n")
-            .unwrap_err()
-            .message
-            .starts_with("expected a single document"));
+        assert!(load("a: 1\n---\nb: 2\n").unwrap_err().message.starts_with("expected a single document"));
     }
 
     #[test]
@@ -513,6 +508,15 @@ mod tests {
         .unwrap();
         assert_eq!(value[0], json!({"a": 7}).into());
         assert_eq!(seen, ["!include Scalar(\"x.yml\")"]);
+    }
+
+    #[test]
+    fn list_items_keep_their_source_text() {
+        let items = list_item_sources("[one, 'two', \"3\", 4, {a: 1}, [x, y], !!int '5']").unwrap().unwrap();
+        assert_eq!(items, ["one", "two", "3", "4", "{a: 1}", "[x, y]", "!!int '5'"]);
+        assert_eq!(list_item_sources("- a\n- 'b c'\n").unwrap().unwrap(), ["a", "b c"]);
+        assert_eq!(list_item_sources("[]").unwrap().unwrap(), Vec::<String>::new());
+        assert_eq!(list_item_sources("scalar").unwrap(), None);
     }
 
     #[test]

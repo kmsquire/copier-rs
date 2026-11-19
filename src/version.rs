@@ -33,9 +33,6 @@ mod tests {
         assert!(parse("1.0.dev1").is_some_and(|v| is_prerelease(&v)));
         assert!(parse("1.0.post1").is_some_and(|v| !is_prerelease(&v)));
         assert!(parse("v1.10") > parse("v1.9"));
-        assert_eq!(
-            parse("3.0.0-alpha").map(|v| v.to_string()).as_deref(),
-            Some("3.0.0a0")
-        );
+        assert_eq!(parse("3.0.0-alpha").map(|v| v.to_string()).as_deref(), Some("3.0.0a0"));
     }
 }

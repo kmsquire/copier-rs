@@ -23,13 +23,7 @@ pub const CLONE_PREFIX: &str = "copier._vcs.clone.";
 /// Environment variable overriding where git mirrors are cached.
 pub const CACHE_DIR_ENV_VAR: &str = "COPIER_CACHE_DIR";
 
-const GIT_PREFIXES: &[&str] = &[
-    "git@",
-    "git://",
-    "git+",
-    "https://github.com/",
-    "https://gitlab.com/",
-];
+const GIT_PREFIXES: &[&str] = &["git@", "git://", "git+", "https://github.com/", "https://gitlab.com/"];
 const GIT_POSTFIX: &str = ".git";
 const ALIASES: &[(&str, &str)] = &[("gh:", "https://github.com"), ("gl:", "https://gitlab.com")];
 
@@ -51,16 +45,12 @@ impl Git {
 
     /// Git running in `cwd`.
     pub fn in_dir(cwd: impl AsRef<Path>) -> Self {
-        Self {
-            cwd: Some(cwd.as_ref().to_path_buf()),
-            env: Vec::new(),
-        }
+        Self { cwd: Some(cwd.as_ref().to_path_buf()), env: Vec::new() }
     }
 
     /// Add an environment variable to the invocation.
     pub fn env(mut self, key: impl AsRef<OsStr>, value: impl AsRef<OsStr>) -> Self {
-        self.env
-            .push((key.as_ref().to_os_string(), value.as_ref().to_os_string()));
+        self.env.push((key.as_ref().to_os_string(), value.as_ref().to_os_string()));
         self
     }
 
@@ -114,12 +104,8 @@ impl Git {
     ///
     /// Fails only when git cannot be started.
     pub fn output_with_stdin<S: AsRef<OsStr>>(&self, args: &[S], input: &[u8]) -> Result<Output> {
-        let mut child = self
-            .command(args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+        let mut child =
+            self.command(args).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
         if let Some(mut stdin) = child.stdin.take() {
             // Git may exit before reading everything; its status tells the real story.
             let _ = stdin.write_all(input);
@@ -129,8 +115,7 @@ impl Git {
 
     /// Whether git exits successfully.
     pub fn succeeds<S: AsRef<OsStr>>(&self, args: &[S]) -> bool {
-        self.output(args)
-            .is_ok_and(|output| output.status.success())
+        self.output(args).is_ok_and(|output| output.status.success())
     }
 }
 
@@ -138,16 +123,10 @@ fn check<S: AsRef<OsStr>>(args: &[S], output: Output) -> Result<String> {
     if output.status.success() {
         return Ok(String::from_utf8_lossy(&output.stdout).into_owned());
     }
-    let args: Vec<String> = args
-        .iter()
-        .map(|arg| arg.as_ref().to_string_lossy().into_owned())
-        .collect();
+    let args: Vec<String> = args.iter().map(|arg| arg.as_ref().to_string_lossy().into_owned()).collect();
     Err(CopierError::Process(format!(
         "Unexpected exit code: {}\nCommand line: git {}\nStdout: {}\nStderr: {}",
-        output
-            .status
-            .code()
-            .map_or_else(|| "signal".to_owned(), |code| code.to_string()),
+        output.status.code().map_or_else(|| "signal".to_owned(), |code| code.to_string()),
         args.join(" "),
         String::from_utf8_lossy(&output.stdout).trim_end(),
         String::from_utf8_lossy(&output.stderr).trim_end(),
@@ -165,14 +144,9 @@ pub fn git(cwd: &Path, args: &[&str]) -> Result<String> {
 
 /// Whether a `git` executable is on `PATH`.
 pub fn is_git_available() -> bool {
-    let names: &[&str] = if cfg!(windows) {
-        &["git.exe", "git"]
-    } else {
-        &["git"]
-    };
-    std::env::var_os("PATH").is_some_and(|path| {
-        std::env::split_paths(&path).any(|dir| names.iter().any(|name| dir.join(name).is_file()))
-    })
+    let names: &[&str] = if cfg!(windows) { &["git.exe", "git"] } else { &["git"] };
+    std::env::var_os("PATH")
+        .is_some_and(|path| std::env::split_paths(&path).any(|dir| names.iter().any(|name| dir.join(name).is_file())))
 }
 
 /// Version of the installed git.
@@ -194,12 +168,7 @@ pub fn parse_git_version(output: &str) -> Result<GitVersion> {
     let captures = VERSION
         .captures(output)
         .ok_or_else(|| CopierError::Value(format!("Cannot parse git version from {output:?}")))?;
-    let number = |index: usize| {
-        captures
-            .get(index)
-            .and_then(|m| m.as_str().parse().ok())
-            .unwrap_or(0)
-    };
+    let number = |index: usize| captures.get(index).and_then(|m| m.as_str().parse().ok()).unwrap_or(0);
     Ok((number(1), number(2), number(3)))
 }
 
@@ -210,13 +179,8 @@ fn compile(pattern: &str) -> Regex {
 }
 
 fn toplevel(path: &Path) -> Option<PathBuf> {
-    let output = Git::in_dir(path)
-        .output(&["rev-parse", "--show-toplevel"])
-        .ok()?;
-    output
-        .status
-        .success()
-        .then(|| PathBuf::from(String::from_utf8_lossy(&output.stdout).trim()))
+    let output = Git::in_dir(path).output(&["rev-parse", "--show-toplevel"]).ok()?;
+    output.status.success().then(|| PathBuf::from(String::from_utf8_lossy(&output.stdout).trim()))
 }
 
 /// Whether `path` is inside a git work tree.
@@ -226,10 +190,7 @@ pub fn is_in_git_repo(path: &Path) -> bool {
 
 /// Whether `path` is the top level of a git repository.
 pub fn is_git_repo_root(path: &Path) -> bool {
-    match (
-        toplevel(path).map(|top| top.canonicalize()),
-        path.canonicalize(),
-    ) {
+    match (toplevel(path).map(|top| top.canonicalize()), path.canonicalize()) {
         (Some(Ok(top)), Ok(resolved)) => top == resolved,
         _ => false,
     }
@@ -239,28 +200,18 @@ pub fn is_git_repo_root(path: &Path) -> bool {
 pub fn is_git_shallow_repo(path: &Path) -> bool {
     Git::in_dir(path)
         .output(&["rev-parse", "--is-shallow-repository"])
-        .is_ok_and(|output| {
-            output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true"
-        })
+        .is_ok_and(|output| output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true")
 }
 
 /// Whether `path` is a valid git bundle file.
 pub fn is_git_bundle(path: &Path) -> bool {
     let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    let Ok(scratch) = tempfile::Builder::new()
-        .prefix("copier._vcs.is_git_bundle.")
-        .tempdir()
-    else {
+    let Ok(scratch) = tempfile::Builder::new().prefix("copier._vcs.is_git_bundle.").tempdir() else {
         return false;
     };
     let git = Git::in_dir(scratch.path());
     git.succeeds(&["init"])
-        && git.succeeds(&[
-            OsStr::new("bundle"),
-            OsStr::new("verify"),
-            OsStr::new("--"),
-            path.as_os_str(),
-        ])
+        && git.succeeds(&[OsStr::new("bundle"), OsStr::new("verify"), OsStr::new("--"), path.as_os_str()])
 }
 
 /// Normalize a template location to a clonable git URL.
@@ -273,11 +224,7 @@ pub fn get_repo(url: &str) -> Option<String> {
     for (alias, replacement) in ALIASES {
         if let Some(rest) = url.strip_prefix(alias) {
             let rest = rest.strip_prefix('/').unwrap_or(rest);
-            let postfix = if rest.ends_with(GIT_POSTFIX) {
-                ""
-            } else {
-                GIT_POSTFIX
-            };
+            let postfix = if rest.ends_with(GIT_POSTFIX) { "" } else { GIT_POSTFIX };
             url = format!("{replacement}/{rest}{postfix}");
         }
     }
@@ -333,9 +280,7 @@ fn is_valid_mirror(mirror: &Path) -> bool {
         && Git::new()
             .env("GIT_DIR", mirror)
             .output(&["rev-parse", "--is-bare-repository"])
-            .is_ok_and(|output| {
-                output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true"
-            })
+            .is_ok_and(|output| output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true")
 }
 
 /// Get the cached mirror of `url`, creating or refreshing it.
@@ -352,9 +297,7 @@ fn get_or_create_mirror(url: &str) -> Result<PathBuf> {
     }
     let parent = mirror.parent().unwrap_or(Path::new("."));
     std::fs::create_dir_all(parent)?;
-    let staging = tempfile::Builder::new()
-        .prefix(CLONE_PREFIX)
-        .tempdir_in(parent)?;
+    let staging = tempfile::Builder::new().prefix(CLONE_PREFIX).tempdir_in(parent)?;
     let staging_repo = staging.path().join("repo.git");
     Git::new().run(&[
         OsStr::new("clone"),
@@ -432,9 +375,7 @@ pub fn get_latest_tag(url: &str, use_prereleases: bool) -> Result<String> {
     match tags.first() {
         Some((_, tag)) => Ok((*tag).to_owned()),
         None => {
-            output::eprintln(&output::style::warn(
-                "No git tags found in template; using HEAD as ref",
-            ));
+            output::eprintln(&output::style::warn("No git tags found in template; using HEAD as ref"));
             Ok("HEAD".to_owned())
         }
     }
@@ -454,21 +395,11 @@ fn resolve_ref(repo: &Path, git_ref: &str) -> Result<String> {
             }
         }
     }
-    Err(CopierError::Value(format!(
-        "Unknown revision: {}",
-        crate::value::py_str_repr(git_ref)
-    )))
+    Err(CopierError::Value(format!("Unknown revision: {}", crate::value::py_str_repr(git_ref))))
 }
 
 fn update_submodules(location: &Path) -> Result<()> {
-    Git::in_dir(location).run(&[
-        "submodule",
-        "update",
-        "--checkout",
-        "--init",
-        "--recursive",
-        "--force",
-    ])?;
+    Git::in_dir(location).run(&["submodule", "update", "--checkout", "--init", "--recursive", "--force"])?;
     Ok(())
 }
 
@@ -486,10 +417,7 @@ pub fn clone(url: &str, git_ref: Option<&str>, location: Option<&Path>) -> Resul
     let git_version = get_git_version()?;
     let location = match location {
         Some(location) => location.to_path_buf(),
-        None => tempfile::Builder::new()
-            .prefix(CLONE_PREFIX)
-            .tempdir()?
-            .keep(),
+        None => tempfile::Builder::new().prefix(CLONE_PREFIX).tempdir()?.keep(),
     };
     if is_remote(url) {
         let mirror = get_or_create_mirror(url)?;
@@ -528,10 +456,7 @@ pub fn clone(url: &str, git_ref: Option<&str>, location: Option<&Path>) -> Resul
     Git::new().run(&clone_args)?;
     let url_abspath = std::path::absolute(url)?;
     if git_ref == "HEAD" && url_abspath.is_dir() {
-        let is_dirty = !Git::in_dir(&url_abspath)
-            .run(&["status", "--porcelain"])?
-            .trim()
-            .is_empty();
+        let is_dirty = !Git::in_dir(&url_abspath).run(&["status", "--porcelain"])?.trim().is_empty();
         if is_dirty {
             let git = Git::in_dir(&location).env("GIT_WORK_TREE", &url_abspath);
             git.run(&["--git-dir=.git", "add", "-A"])?;
@@ -543,10 +468,7 @@ pub fn clone(url: &str, git_ref: Option<&str>, location: Option<&Path>) -> Resul
                 "--no-verify",
                 "--no-gpg-sign",
             ])?;
-            warn(
-                WarningKind::DirtyLocal,
-                "Dirty template changes included automatically.",
-            );
+            warn(WarningKind::DirtyLocal, "Dirty template changes included automatically.");
         }
     }
     let commit = resolve_ref(&location, git_ref)?;
@@ -562,28 +484,13 @@ mod tests {
     #[test]
     fn repo_url_normalization() {
         for (input, expected) in [
-            (
-                "gh:copier-org/copier",
-                "https://github.com/copier-org/copier.git",
-            ),
-            (
-                "gh:/copier-org/copier.git",
-                "https://github.com/copier-org/copier.git",
-            ),
+            ("gh:copier-org/copier", "https://github.com/copier-org/copier.git"),
+            ("gh:/copier-org/copier.git", "https://github.com/copier-org/copier.git"),
             ("gl:group/project", "https://gitlab.com/group/project.git"),
-            (
-                "git@github.com:copier-org/copier.git",
-                "git@github.com:copier-org/copier.git",
-            ),
+            ("git@github.com:copier-org/copier.git", "git@github.com:copier-org/copier.git"),
             ("git+https://example.com/repo", "https://example.com/repo"),
-            (
-                "https://github.com/copier-org/copier",
-                "https://github.com/copier-org/copier.git",
-            ),
-            (
-                "https://example.com/repo.git",
-                "https://example.com/repo.git",
-            ),
+            ("https://github.com/copier-org/copier", "https://github.com/copier-org/copier.git"),
+            ("https://example.com/repo.git", "https://example.com/repo.git"),
         ] {
             assert_eq!(get_repo(input).as_deref(), Some(expected), "{input}");
         }
@@ -591,10 +498,7 @@ mod tests {
 
     #[test]
     fn git_version_parsing() {
-        assert_eq!(
-            parse_git_version("git version 2.39.2 (Apple Git-143)").unwrap(),
-            (2, 39, 2)
-        );
+        assert_eq!(parse_git_version("git version 2.39.2 (Apple Git-143)").unwrap(), (2, 39, 2));
         assert_eq!(parse_git_version("git version 2.27").unwrap(), (2, 27, 0));
         assert!(parse_git_version("no digits").is_err());
     }
@@ -605,9 +509,6 @@ mod tests {
             get_mirror_path("https://user:secret@example.com/repo.git"),
             get_mirror_path("https://example.com/repo.git")
         );
-        assert_eq!(
-            strip_credentials("git@github.com:org/repo.git"),
-            "git@github.com:org/repo.git"
-        );
+        assert_eq!(strip_credentials("git@github.com:org/repo.git"), "git@github.com:org/repo.git");
     }
 }

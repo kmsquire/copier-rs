@@ -34,21 +34,13 @@ pub struct DumpOptions {
 
 impl Default for DumpOptions {
     fn default() -> Self {
-        Self {
-            indent: 2,
-            flow: FlowStyle::Block,
-            sort_keys: true,
-            allow_unicode: true,
-        }
+        Self { indent: 2, flow: FlowStyle::Block, sort_keys: true, allow_unicode: true }
     }
 }
 
 /// Serialize `value` as one YAML document.
 pub fn dump(value: &Value, options: &DumpOptions) -> String {
-    let mut emitter = Emitter {
-        out: String::new(),
-        options: *options,
-    };
+    let mut emitter = Emitter { out: String::new(), options: *options };
     match value {
         Value::Seq(_) | Value::Map(_) => {
             emitter.node(value, 0, Position::Root);
@@ -131,11 +123,8 @@ impl Emitter {
                     self.out.push_str(&text);
                     self.out.push(':');
                     // A block sequence under a key is not indented further.
-                    let child_indent = if matches!(item, Value::Seq(_)) {
-                        indent
-                    } else {
-                        indent + self.options.indent
-                    };
+                    let child_indent =
+                        if matches!(item, Value::Seq(_)) { indent } else { indent + self.options.indent };
                     self.node(item, child_indent, Position::MappingValue);
                 }
             }
@@ -148,9 +137,7 @@ impl Emitter {
         match (index, position) {
             (0, Position::Root) => {}
             // The first entry of a collection nested in a sequence shares the dash's line.
-            (0, Position::SequenceItem) => self
-                .out
-                .push_str(&" ".repeat(self.options.indent.saturating_sub(1))),
+            (0, Position::SequenceItem) => self.out.push_str(&" ".repeat(self.options.indent.saturating_sub(1))),
             _ => self.newline(indent),
         }
     }
@@ -302,9 +289,7 @@ fn plain_allowed(text: &str, in_flow: bool) -> bool {
     }
     let chars: Vec<char> = text.chars().collect();
     for (index, &ch) in chars.iter().enumerate() {
-        let followed_by_space = chars
-            .get(index + 1)
-            .map_or(true, |next| " \t".contains(*next));
+        let followed_by_space = chars.get(index + 1).map_or(true, |next| " \t".contains(*next));
         let preceded_by_space = index == 0 || " \t".contains(chars[index - 1]);
         if index == 0 {
             if "#,[]{}&*!|>'\"%@`".contains(ch) {
@@ -338,24 +323,13 @@ mod tests {
     use super::*;
 
     fn nice(value: serde_json::Value) -> String {
-        dump(
-            &value.into(),
-            &DumpOptions {
-                indent: 4,
-                ..DumpOptions::default()
-            },
-        )
+        dump(&value.into(), &DumpOptions { indent: 4, ..DumpOptions::default() })
     }
 
     #[test]
     fn answers_file_shape() {
-        let text = nice(
-            json!({"_src_path": "gh:org/tpl", "_commit": "v1.0.0", "name": "x", "flag": true, "n": 3}),
-        );
-        assert_eq!(
-            text,
-            "_commit: v1.0.0\n_src_path: gh:org/tpl\nflag: true\nn: 3\nname: x\n"
-        );
+        let text = nice(json!({"_src_path": "gh:org/tpl", "_commit": "v1.0.0", "name": "x", "flag": true, "n": 3}));
+        assert_eq!(text, "_commit: v1.0.0\n_src_path: gh:org/tpl\nflag: true\nn: 3\nname: x\n");
     }
 
     #[test]
@@ -427,21 +401,9 @@ a:
     #[test]
     fn flow_styles() {
         let value: Value = json!({"b": [1, "x, y"], "a": {"k": "v"}}).into();
-        let flow = dump(
-            &value,
-            &DumpOptions {
-                flow: FlowStyle::Flow,
-                ..DumpOptions::default()
-            },
-        );
+        let flow = dump(&value, &DumpOptions { flow: FlowStyle::Flow, ..DumpOptions::default() });
         assert_eq!(flow, "{a: {k: v}, b: [1, 'x, y']}\n");
-        let auto = dump(
-            &value,
-            &DumpOptions {
-                flow: FlowStyle::Auto,
-                ..DumpOptions::default()
-            },
-        );
+        let auto = dump(&value, &DumpOptions { flow: FlowStyle::Auto, ..DumpOptions::default() });
         assert_eq!(auto, "a: {k: v}\nb: [1, 'x, y']\n");
     }
 }

@@ -9,4 +9,4 @@ mod loader;
 mod resolver;
 
 pub use emitter::{dump, DumpOptions, FlowStyle};
-pub use loader::{decode, load, load_all, load_all_with, LoadError, TaggedNode, YamlError};
+pub use loader::{decode, list_item_sources, load, load_all, load_all_with, LoadError, TaggedNode, YamlError};

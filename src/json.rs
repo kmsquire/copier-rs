@@ -20,24 +20,14 @@ pub struct DumpOptions<'a> {
 
 impl Default for DumpOptions<'_> {
     fn default() -> Self {
-        Self {
-            indent: None,
-            sort_keys: false,
-            ensure_ascii: true,
-            item_separator: ", ",
-            key_separator: ": ",
-        }
+        Self { indent: None, sort_keys: false, ensure_ascii: true, item_separator: ", ", key_separator: ": " }
     }
 }
 
 impl DumpOptions<'_> {
     /// `json.dumps(value, indent=n)`: one item per line, no trailing spaces.
     pub fn indented(indent: usize) -> Self {
-        Self {
-            indent: Some(indent),
-            item_separator: ",",
-            ..Self::default()
-        }
+        Self { indent: Some(indent), item_separator: ",", ..Self::default() }
     }
 }
 
@@ -122,12 +112,7 @@ fn float_text(number: f64) -> String {
     if number.is_nan() {
         "NaN".to_owned()
     } else if number.is_infinite() {
-        if number > 0.0 {
-            "Infinity"
-        } else {
-            "-Infinity"
-        }
-        .to_owned()
+        if number > 0.0 { "Infinity" } else { "-Infinity" }.to_owned()
     } else {
         py_float_repr(number)
     }
@@ -163,9 +148,7 @@ fn write_string(out: &mut String, text: &str, ensure_ascii: bool) {
 ///
 /// Returns the parser's message for invalid JSON.
 pub fn loads(text: &str) -> Result<Value, String> {
-    serde_json::from_str::<serde_json::Value>(text)
-        .map(Value::from)
-        .map_err(|err| err.to_string())
+    serde_json::from_str::<serde_json::Value>(text).map(Value::from).map_err(|err| err.to_string())
 }
 
 #[cfg(test)]
@@ -177,35 +160,19 @@ mod tests {
     #[test]
     fn matches_python_defaults() {
         let value: Value = json!({"b": [1, 2.0, "é", null, true], "a": {}}).into();
-        assert_eq!(
-            dumps(&value, &DumpOptions::default()),
-            r#"{"b": [1, 2.0, "\u00e9", null, true], "a": {}}"#
-        );
-        let sorted = DumpOptions {
-            sort_keys: true,
-            ensure_ascii: false,
-            ..DumpOptions::default()
-        };
-        assert_eq!(
-            dumps(&value, &sorted),
-            r#"{"a": {}, "b": [1, 2.0, "é", null, true]}"#
-        );
+        assert_eq!(dumps(&value, &DumpOptions::default()), r#"{"b": [1, 2.0, "\u00e9", null, true], "a": {}}"#);
+        let sorted = DumpOptions { sort_keys: true, ensure_ascii: false, ..DumpOptions::default() };
+        assert_eq!(dumps(&value, &sorted), r#"{"a": {}, "b": [1, 2.0, "é", null, true]}"#);
     }
 
     #[test]
     fn indentation() {
         let value: Value = json!({"a": [1, 2], "b": []}).into();
-        assert_eq!(
-            dumps(&value, &DumpOptions::indented(2)),
-            "{\n  \"a\": [\n    1,\n    2\n  ],\n  \"b\": []\n}"
-        );
+        assert_eq!(dumps(&value, &DumpOptions::indented(2)), "{\n  \"a\": [\n    1,\n    2\n  ],\n  \"b\": []\n}");
     }
 
     #[test]
     fn astral_characters_use_surrogate_pairs() {
-        assert_eq!(
-            dumps(&Value::from("🎤"), &DumpOptions::default()),
-            "\"\\ud83c\\udfa4\""
-        );
+        assert_eq!(dumps(&Value::from("🎤"), &DumpOptions::default()), "\"\\ud83c\\udfa4\"");
     }
 }

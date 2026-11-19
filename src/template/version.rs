@@ -31,10 +31,7 @@ pub(super) fn template_version(repo: &Path, commit: &str) -> Option<Version> {
         return version::parse(&serialized);
     }
     if let Some(captures) = DESCRIBE_SUFFIX.captures(commit) {
-        return version::parse(&format!(
-            "{}.post{}+{}",
-            &captures[1], &captures[2], &captures[3]
-        ));
+        return version::parse(&format!("{}.post{}+{}", &captures[1], &captures[2], &captures[3]));
     }
     version::parse(commit)
 }
@@ -43,74 +40,35 @@ pub(super) fn template_version(repo: &Path, commit: &str) -> Option<Version> {
 /// `None` where dunamai raises `ValueError`.
 fn from_git(repo: &Path) -> Option<String> {
     let git = Git::in_dir(repo);
-    let commit = git
-        .run(&["log", "-n", "1", "--format=format:%h"])
-        .ok()?
-        .trim()
-        .to_owned();
+    let commit = git.run(&["log", "-n", "1", "--format=format:%h"]).ok()?.trim().to_owned();
     if commit.is_empty() {
         return Some("0.0.0".to_owned());
     }
     let decorated = git
-        .run(&[
-            "log",
-            "--simplify-by-decoration",
-            "--topo-order",
-            "--decorate=full",
-            "HEAD",
-            "--format=%H%d",
-        ])
+        .run(&["log", "--simplify-by-decoration", "--topo-order", "--decorate=full", "HEAD", "--format=%H%d"])
         .ok()?;
     let tags: Vec<&str> = decorated
         .lines()
-        .filter_map(|line| {
-            line.split_once(" (")
-                .map(|(_, refs)| refs.trim_end_matches(')'))
-        })
+        .filter_map(|line| line.split_once(" (").map(|(_, refs)| refs.trim_end_matches(')')))
         .flat_map(|refs| refs.split(", "))
         .filter_map(|name| name.strip_prefix("tag: refs/tags/"))
         .collect();
     if tags.is_empty() {
-        let distance: u64 = git
-            .run(&["rev-list", "--count", "HEAD"])
-            .ok()?
-            .trim()
-            .parse()
-            .ok()?;
+        let distance: u64 = git.run(&["rev-list", "--count", "HEAD"]).ok()?.trim().parse().ok()?;
         return serialize("0.0.0", None, None, distance, &commit);
     }
-    let (tag, captures) = tags
-        .iter()
-        .find_map(|tag| TAG_PATTERN.captures(tag).map(|captures| (tag, captures)))?;
-    let distance: u64 = git
-        .run(&["rev-list", "--count", &format!("refs/tags/{tag}..HEAD")])
-        .ok()?
-        .trim()
-        .parse()
-        .ok()?;
+    let (tag, captures) = tags.iter().find_map(|tag| TAG_PATTERN.captures(tag).map(|captures| (tag, captures)))?;
+    let distance: u64 =
+        git.run(&["rev-list", "--count", &format!("refs/tags/{tag}..HEAD")]).ok()?.trim().parse().ok()?;
     let base = match captures.name("epoch") {
         Some(epoch) => format!("{}!{}", epoch.as_str(), &captures["base"]),
         None => captures["base"].to_owned(),
     };
-    let revision = captures
-        .name("revision")
-        .and_then(|m| m.as_str().parse::<u64>().ok());
-    serialize(
-        &base,
-        captures.name("stage").map(|m| m.as_str()),
-        revision,
-        distance,
-        &commit,
-    )
+    let revision = captures.name("revision").and_then(|m| m.as_str().parse::<u64>().ok());
+    serialize(&base, captures.name("stage").map(|m| m.as_str()), revision, distance, &commit)
 }
 
-fn serialize(
-    base: &str,
-    stage: Option<&str>,
-    revision: Option<u64>,
-    distance: u64,
-    commit: &str,
-) -> Option<String> {
+fn serialize(base: &str, stage: Option<&str>, revision: Option<u64>, distance: u64, commit: &str) -> Option<String> {
     let (mut stage, mut post, mut dev) = (stage, None, None);
     match stage {
         Some("post") => {
@@ -143,10 +101,7 @@ fn serialize(
             other => other,
         });
         // dunamai validates its own output; unknown stages make it give up.
-        if !matches!(
-            lower.as_str(),
-            "a" | "b" | "rc" | "alpha" | "beta" | "c" | "pre" | "preview"
-        ) {
+        if !matches!(lower.as_str(), "a" | "b" | "rc" | "alpha" | "beta" | "c" | "pre" | "preview") {
             return None;
         }
         out.push_str(&revision.unwrap_or(0).to_string());
@@ -169,26 +124,11 @@ mod tests {
 
     #[test]
     fn serialization() {
-        assert_eq!(
-            serialize("1.2.3", None, None, 0, "abc").as_deref(),
-            Some("1.2.3")
-        );
-        assert_eq!(
-            serialize("1.2.3", None, None, 3, "abc").as_deref(),
-            Some("1.2.3.post3.dev0+abc")
-        );
-        assert_eq!(
-            serialize("3.0.0", Some("alpha"), None, 0, "abc").as_deref(),
-            Some("3.0.0a0")
-        );
-        assert_eq!(
-            serialize("1.0", Some("rc"), Some(2), 1, "abc").as_deref(),
-            Some("1.0rc2.post1.dev0+abc")
-        );
-        assert_eq!(
-            serialize("1.0", Some("post"), Some(2), 1, "abc").as_deref(),
-            Some("1.0.post2.dev1+abc")
-        );
+        assert_eq!(serialize("1.2.3", None, None, 0, "abc").as_deref(), Some("1.2.3"));
+        assert_eq!(serialize("1.2.3", None, None, 3, "abc").as_deref(), Some("1.2.3.post3.dev0+abc"));
+        assert_eq!(serialize("3.0.0", Some("alpha"), None, 0, "abc").as_deref(), Some("3.0.0a0"));
+        assert_eq!(serialize("1.0", Some("rc"), Some(2), 1, "abc").as_deref(), Some("1.0rc2.post1.dev0+abc"));
+        assert_eq!(serialize("1.0", Some("post"), Some(2), 1, "abc").as_deref(), Some("1.0.post2.dev1+abc"));
         assert_eq!(serialize("1.0", Some("foo"), None, 0, "abc"), None);
     }
 }

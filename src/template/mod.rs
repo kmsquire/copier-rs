@@ -17,16 +17,8 @@ use crate::vcs::{self, Git};
 use crate::version::{parse as parse_version, Version};
 
 /// Patterns excluded from rendering unless the template overrides `_exclude`.
-pub const DEFAULT_EXCLUDE: &[&str] = &[
-    "copier.yaml",
-    "copier.yml",
-    "~*",
-    "*.py[co]",
-    "__pycache__",
-    ".git",
-    ".DS_Store",
-    ".svn",
-];
+pub const DEFAULT_EXCLUDE: &[&str] =
+    &["copier.yaml", "copier.yml", "~*", "*.py[co]", "__pycache__", ".git", ".DS_Store", ".svn"];
 
 /// Suffix marking files to be rendered with Jinja.
 pub const DEFAULT_TEMPLATES_SUFFIX: &str = ".jinja";
@@ -37,8 +29,7 @@ thread_local! {
 
 /// Run `f` as if this were Copier `version`, for exercising `_min_copier_version`.
 pub fn with_copier_version<T>(version: &str, f: impl FnOnce() -> T) -> T {
-    let previous =
-        COPIER_VERSION_OVERRIDE.with(|slot| slot.borrow_mut().replace(version.to_owned()));
+    let previous = COPIER_VERSION_OVERRIDE.with(|slot| slot.borrow_mut().replace(version.to_owned()));
     let result = f();
     COPIER_VERSION_OVERRIDE.with(|slot| *slot.borrow_mut() = previous);
     result
@@ -46,9 +37,7 @@ pub fn with_copier_version<T>(version: &str, f: impl FnOnce() -> T) -> T {
 
 /// The Copier version templates are checked against.
 pub fn copier_version() -> String {
-    COPIER_VERSION_OVERRIDE
-        .with(|slot| slot.borrow().clone())
-        .unwrap_or_else(|| crate::COPIER_VERSION.to_owned())
+    COPIER_VERSION_OVERRIDE.with(|slot| slot.borrow().clone()).unwrap_or_else(|| crate::COPIER_VERSION.to_owned())
 }
 
 /// Check the running Copier against a template's `_min_copier_version`.
@@ -61,10 +50,7 @@ pub fn verify_copier_version(required: &str) -> Result<()> {
     let invalid = |text: &str| CopierError::Value(format!("Invalid version: '{text}'"));
     let installed = parse_version(&installed_text).ok_or_else(|| invalid(&installed_text))?;
     if parse_version("0.0.0").as_ref() == Some(&installed) {
-        warn(
-            WarningKind::UnknownCopierVersion,
-            "Cannot check Copier version constraint.",
-        );
+        warn(WarningKind::UnknownCopierVersion, "Cannot check Copier version constraint.");
         return Ok(());
     }
     let minimum = parse_version(required).ok_or_else(|| invalid(required))?;
@@ -122,12 +108,7 @@ pub struct Task {
 impl Task {
     /// A task that always runs in the project root.
     pub fn new(cmd: Command, extra_vars: Mapping) -> Self {
-        Self {
-            cmd,
-            extra_vars,
-            condition: Value::Bool(true),
-            working_directory: PathBuf::new(),
-        }
+        Self { cmd, extra_vars, condition: Value::Bool(true), working_directory: PathBuf::new() }
     }
 }
 
@@ -192,9 +173,7 @@ pub struct Template {
 
 impl PartialEq for Template {
     fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
-            && self.git_ref == other.git_ref
-            && self.use_prereleases == other.use_prereleases
+        self.url == other.url && self.git_ref == other.git_ref && self.use_prereleases == other.use_prereleases
     }
 }
 
@@ -217,12 +196,7 @@ fn strings(value: Option<&Value>) -> Vec<String> {
 impl Template {
     /// Describe the template at `url`.
     pub fn new(url: impl Into<String>) -> Self {
-        Self {
-            url: url.into(),
-            git_ref: None,
-            use_prereleases: false,
-            cache: Rc::default(),
-        }
+        Self { url: url.into(), git_ref: None, use_prereleases: false, cache: Rc::default() }
     }
 
     /// Use a specific git ref.
@@ -241,18 +215,12 @@ impl Template {
 
     /// Whether the template is a git repository.
     pub fn is_git(&self) -> bool {
-        *self
-            .cache
-            .is_git
-            .get_or_init(|| vcs::is_git_available() && vcs::get_repo(&self.url).is_some())
+        *self.cache.is_git.get_or_init(|| vcs::is_git_available() && vcs::get_repo(&self.url).is_some())
     }
 
     /// The clonable form of [`Template::url`].
     pub fn url_expanded(&self) -> String {
-        self.cache
-            .url_expanded
-            .get_or_init(|| vcs::get_repo(&self.url).unwrap_or_else(|| self.url.clone()))
-            .clone()
+        self.cache.url_expanded.get_or_init(|| vcs::get_repo(&self.url).unwrap_or_else(|| self.url.clone())).clone()
     }
 
     /// Local checkout of the template.
@@ -264,10 +232,7 @@ impl Template {
         cached(&self.cache.local_abspath, || {
             let mut result = PathBuf::from(&self.url);
             if self.is_git() {
-                let location = tempfile::Builder::new()
-                    .prefix(vcs::CLONE_PREFIX)
-                    .tempdir()?
-                    .keep();
+                let location = tempfile::Builder::new().prefix(vcs::CLONE_PREFIX).tempdir()?.keep();
                 // Registered before cloning so a failed clone is cleaned up too.
                 let _ = self.cache.clone_guard.set(CloneGuard(location.clone()));
                 let url = self.url_expanded();
@@ -278,9 +243,7 @@ impl Template {
                 result = vcs::clone(&url, Some(&git_ref), Some(&location))?;
             }
             if !result.is_dir() {
-                return Err(CopierError::Value(
-                    "Local template must be a directory.".to_owned(),
-                ));
+                return Err(CopierError::Value("Local template must be a directory.".to_owned()));
             }
             Ok(result.canonicalize().unwrap_or(result))
         })
@@ -293,10 +256,7 @@ impl Template {
                 .flatten()
                 .map(|entry| entry.path())
                 .filter(|path| {
-                    let name = path
-                        .file_name()
-                        .map(|name| name.to_string_lossy().to_lowercase())
-                        .unwrap_or_default();
+                    let name = path.file_name().map(|name| name.to_string_lossy().to_lowercase()).unwrap_or_default();
                     path.is_file()
                         && name.strip_prefix("copier.").is_some_and(|rest| {
                             let suffix = rest.rsplit('.').next().unwrap_or(rest);
@@ -312,15 +272,8 @@ impl Template {
                     _ => Ok(Mapping::new()),
                 },
                 _ => {
-                    let listing: Vec<String> = conf_paths
-                        .iter()
-                        .map(|path| path.display().to_string())
-                        .collect();
-                    crate::output::printf_exception(
-                        &listing.join(", "),
-                        "MULTIPLE CONFIG FILES",
-                        &listing.join(", "),
-                    );
+                    let listing: Vec<String> = conf_paths.iter().map(|path| path.display().to_string()).collect();
+                    crate::output::printf_exception(&listing.join(", "), "MULTIPLE CONFIG FILES", &listing.join(", "));
                     Err(CopierError::MultipleConfigFiles { conf_paths })
                 }
             }
@@ -347,10 +300,7 @@ impl Template {
     }
 
     fn text_setting(&self, name: &str) -> Result<String> {
-        Ok(self
-            .setting(name)?
-            .map(|value| value.py_str())
-            .unwrap_or_default())
+        Ok(self.setting(name)?.map(|value| value.py_str()).unwrap_or_default())
     }
 
     /// Questions from `copier.yml`, each normalized to a mapping.
@@ -378,9 +328,7 @@ impl Template {
             Some(Value::Map(map)) => map,
             _ => Mapping::new(),
         };
-        envops
-            .entry(Value::from("keep_trailing_newline"))
-            .or_insert(Value::Bool(true));
+        envops.entry(Value::from("keep_trailing_newline")).or_insert(Value::Bool(true));
         Ok(envops)
     }
 
@@ -393,10 +341,7 @@ impl Template {
         match self.setting("exclude")? {
             Some(value) => Ok(strings(Some(&value))),
             None if self.subdirectory()?.is_empty() || self.subdirectory()? == "." => {
-                Ok(DEFAULT_EXCLUDE
-                    .iter()
-                    .map(|pattern| (*pattern).to_owned())
-                    .collect())
+                Ok(DEFAULT_EXCLUDE.iter().map(|pattern| (*pattern).to_owned()).collect())
             }
             None => Ok(Vec::new()),
         }
@@ -492,9 +437,7 @@ impl Template {
     ///
     /// Fails on invalid configuration.
     pub fn preserve_symlinks(&self) -> Result<bool> {
-        Ok(self
-            .setting("preserve_symlinks")?
-            .is_some_and(|value| value.is_truthy()))
+        Ok(self.setting("preserve_symlinks")?.is_some_and(|value| value.is_truthy()))
     }
 
     /// Message shown at the given point of a run (`_message_before_copy`, ...).
@@ -512,9 +455,7 @@ impl Template {
     ///
     /// Fails on invalid configuration.
     pub fn tasks(&self) -> Result<Vec<Task>> {
-        let extra_vars: Mapping = [(Value::from("stage"), Value::from("task"))]
-            .into_iter()
-            .collect();
+        let extra_vars: Mapping = [(Value::from("stage"), Value::from("task"))].into_iter().collect();
         let Some(Value::Seq(items)) = self.setting("tasks")? else {
             return Ok(Vec::new());
         };
@@ -523,17 +464,12 @@ impl Template {
             .map(|item| match item {
                 Value::Map(_) => Ok(Task {
                     cmd: Command::from_value(
-                        item.get("command")
-                            .ok_or_else(|| CopierError::Key("'command'".to_owned()))?,
+                        item.get("command").ok_or_else(|| CopierError::Key("'command'".to_owned()))?,
                     )?,
                     extra_vars: extra_vars.clone(),
-                    condition: item
-                        .get("when")
-                        .cloned()
-                        .unwrap_or_else(|| Value::from("true")),
+                    condition: item.get("when").cloned().unwrap_or_else(|| Value::from("true")),
                     working_directory: PathBuf::from(
-                        item.get("working_directory")
-                            .map_or_else(|| ".".to_owned(), Value::py_str),
+                        item.get("working_directory").map_or_else(|| ".".to_owned(), Value::py_str),
                     ),
                 }),
                 other => Ok(Task::new(Command::from_value(other)?, extra_vars.clone())),
@@ -547,8 +483,7 @@ impl Template {
     ///
     /// Fails on invalid configuration.
     pub fn migration_tasks(&self, stage: Stage, from_template: &Template) -> Result<Vec<Task>> {
-        let (Some(to_version), Some(from_version)) = (self.version()?, from_template.version()?)
-        else {
+        let (Some(to_version), Some(from_version)) = (self.version()?, from_template.version()?) else {
             return Ok(Vec::new());
         };
         let text = |value: Option<String>| value.map_or(Value::Null, Value::from);
@@ -563,26 +498,20 @@ impl Template {
         .map(|(key, value)| (Value::from(key), value))
         .collect();
         let envops = self.envops()?;
-        let delimiter = |key: &str, default: &str| {
-            envops
-                .get(&Value::from(key))
-                .map_or_else(|| default.to_owned(), Value::py_str)
-        };
+        let delimiter =
+            |key: &str, default: &str| envops.get(&Value::from(key)).map_or_else(|| default.to_owned(), Value::py_str);
         let default_condition = Value::from(format!(
             "{} _stage == \"after\" {}",
             delimiter("variable_start_string", "{{"),
             delimiter("variable_end_string", "}}")
         ));
         let in_range = |declared: &Value| -> Result<Option<Version>> {
-            let current = parse_version(&declared.py_str()).ok_or_else(|| {
-                CopierError::Value(format!("Invalid version: '{}'", declared.py_str()))
-            })?;
+            let current = parse_version(&declared.py_str())
+                .ok_or_else(|| CopierError::Value(format!("Invalid version: '{}'", declared.py_str())))?;
             Ok((to_version >= current && current > from_version).then_some(current))
         };
         let mut result = Vec::new();
-        let Some(Value::Seq(migrations)) =
-            self.raw_config()?.get(&Value::from("_migrations")).cloned()
-        else {
+        let Some(Value::Seq(migrations)) = self.raw_config()?.get(&Value::from("_migrations")).cloned() else {
             return Ok(result);
         };
         for migration in &migrations {
@@ -592,19 +521,13 @@ impl Template {
                     WarningKind::Deprecation,
                     "This migration configuration is deprecated. Please switch to the new format.",
                 );
-                let declared = migration
-                    .get("version")
-                    .ok_or_else(|| CopierError::Key("'version'".to_owned()))?;
+                let declared = migration.get("version").ok_or_else(|| CopierError::Key("'version'".to_owned()))?;
                 if let Some(current) = in_range(declared)? {
                     extra_vars.insert(Value::from("version_current"), declared.clone());
-                    extra_vars.insert(
-                        Value::from("version_pep440_current"),
-                        Value::from(current.to_string()),
-                    );
+                    extra_vars.insert(Value::from("version_pep440_current"), Value::from(current.to_string()));
                     if let Some(Value::Seq(commands)) = migration.get(stage.as_str()) {
                         for command in commands {
-                            result
-                                .push(Task::new(Command::from_value(command)?, extra_vars.clone()));
+                            result.push(Task::new(Command::from_value(command)?, extra_vars.clone()));
                         }
                     }
                 }
@@ -622,26 +545,16 @@ impl Template {
                     continue;
                 };
                 extra_vars.insert(Value::from("version_current"), declared.clone());
-                extra_vars.insert(
-                    Value::from("version_pep440_current"),
-                    Value::from(current.to_string()),
-                );
+                extra_vars.insert(Value::from("version_pep440_current"), Value::from(current.to_string()));
             }
             result.push(Task {
                 cmd: Command::from_value(
-                    migration
-                        .get("command")
-                        .ok_or_else(|| CopierError::Key("'command'".to_owned()))?,
+                    migration.get("command").ok_or_else(|| CopierError::Key("'command'".to_owned()))?,
                 )?,
                 extra_vars: extra_vars.clone(),
-                condition: migration
-                    .get("when")
-                    .cloned()
-                    .unwrap_or_else(|| default_condition.clone()),
+                condition: migration.get("when").cloned().unwrap_or_else(|| default_condition.clone()),
                 working_directory: PathBuf::from(
-                    migration
-                        .get("working_directory")
-                        .map_or_else(|| ".".to_owned(), Value::py_str),
+                    migration.get("working_directory").map_or_else(|| ".".to_owned(), Value::py_str),
                 ),
             });
         }
@@ -658,8 +571,7 @@ impl Template {
             if !self.is_git() {
                 return Ok(None);
             }
-            let describe =
-                Git::in_dir(self.local_abspath()?).run(&["describe", "--tags", "--always"])?;
+            let describe = Git::in_dir(self.local_abspath()?).run(&["describe", "--tags", "--always"])?;
             Ok(Some(describe.trim().to_owned()))
         })
     }
@@ -673,12 +585,7 @@ impl Template {
         if !self.is_git() {
             return Ok(None);
         }
-        Ok(Some(
-            Git::in_dir(self.local_abspath()?)
-                .run(&["rev-parse", "HEAD"])?
-                .trim()
-                .to_owned(),
-        ))
+        Ok(Some(Git::in_dir(self.local_abspath()?).run(&["rev-parse", "HEAD"])?.trim().to_owned()))
     }
 
     /// PEP 440 version of the checked-out template, if it has one.
@@ -688,9 +595,7 @@ impl Template {
     /// Fails when the checkout or git fails.
     pub fn version(&self) -> Result<Option<Version>> {
         cached(&self.cache.version, || match self.commit()? {
-            Some(commit) if !commit.is_empty() => {
-                Ok(version::template_version(&self.local_abspath()?, &commit))
-            }
+            Some(commit) if !commit.is_empty() => Ok(version::template_version(&self.local_abspath()?, &commit)),
             _ => Ok(None),
         })
     }
@@ -724,10 +629,7 @@ impl Template {
         };
         for line in split_nul(&listing) {
             if let Some((meta, path)) = line.split_once('\t') {
-                let mode = meta
-                    .split(' ')
-                    .next()
-                    .and_then(|mode| u32::from_str_radix(mode, 8).ok());
+                let mode = meta.split(' ').next().and_then(|mode| u32::from_str_radix(mode, 8).ok());
                 if let Some(mode) = mode {
                     modes.insert(path.to_owned(), mode);
                 }

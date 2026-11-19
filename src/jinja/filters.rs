@@ -31,11 +31,7 @@ fn text(value: &JinjaValue) -> String {
     }
 }
 
-fn yaml_options(
-    kwargs: &Kwargs,
-    indent: usize,
-    flow: yaml::FlowStyle,
-) -> Result<yaml::DumpOptions, Error> {
+fn yaml_options(kwargs: &Kwargs, indent: usize, flow: yaml::FlowStyle) -> Result<yaml::DumpOptions, Error> {
     let flow = match kwargs.get::<Option<JinjaValue>>("default_flow_style")? {
         None => flow,
         Some(value) if value.is_none() => yaml::FlowStyle::Auto,
@@ -49,15 +45,7 @@ fn yaml_options(
         allow_unicode: kwargs.get::<Option<bool>>("allow_unicode")?.unwrap_or(true),
     };
     // Layout knobs without an equivalent here; accepted so templates keep working.
-    for ignored in [
-        "width",
-        "explicit_start",
-        "explicit_end",
-        "default_style",
-        "canonical",
-        "line_break",
-        "encoding",
-    ] {
+    for ignored in ["width", "explicit_start", "explicit_end", "default_style", "canonical", "line_break", "encoding"] {
         let _ = kwargs.get::<Option<JinjaValue>>(ignored)?;
     }
     kwargs.assert_all_used()?;
@@ -65,24 +53,16 @@ fn yaml_options(
 }
 
 fn to_yaml(value: JinjaValue, kwargs: Kwargs) -> Result<String, Error> {
-    Ok(yaml::dump(
-        &from_jinja(&value),
-        &yaml_options(&kwargs, 2, yaml::FlowStyle::Auto)?,
-    ))
+    Ok(yaml::dump(&from_jinja(&value), &yaml_options(&kwargs, 2, yaml::FlowStyle::Auto)?))
 }
 
 fn to_nice_yaml(value: JinjaValue, indent: Option<usize>, kwargs: Kwargs) -> Result<String, Error> {
-    Ok(yaml::dump(
-        &from_jinja(&value),
-        &yaml_options(&kwargs, indent.unwrap_or(4), yaml::FlowStyle::Block)?,
-    ))
+    Ok(yaml::dump(&from_jinja(&value), &yaml_options(&kwargs, indent.unwrap_or(4), yaml::FlowStyle::Block)?))
 }
 
 fn from_yaml(value: JinjaValue) -> Result<JinjaValue, Error> {
     match value.as_str() {
-        Some(text) => yaml::load(text)
-            .map(|loaded| to_jinja(&loaded))
-            .map_err(|err| invalid(err.to_string())),
+        Some(text) => yaml::load(text).map(|loaded| to_jinja(&loaded)).map_err(|err| invalid(err.to_string())),
         None => Ok(value),
     }
 }
@@ -106,19 +86,10 @@ struct JsonStyle {
 }
 
 impl JsonStyle {
-    fn from_kwargs(
-        kwargs: &Kwargs,
-        indent: Option<usize>,
-        sort_keys: bool,
-        nice: bool,
-    ) -> Result<Self, Error> {
+    fn from_kwargs(kwargs: &Kwargs, indent: Option<usize>, sort_keys: bool, nice: bool) -> Result<Self, Error> {
         let indent = match kwargs.get::<Option<JinjaValue>>("indent")? {
             Some(value) if value.is_none() => None,
-            Some(value) => Some(
-                value
-                    .as_usize()
-                    .ok_or_else(|| invalid("indent must be a non-negative integer"))?,
-            ),
+            Some(value) => Some(value.as_usize().ok_or_else(|| invalid("indent must be a non-negative integer"))?),
             None => indent,
         };
         let (mut item_separator, mut key_separator) = match (indent, nice) {
@@ -133,9 +104,7 @@ impl JsonStyle {
         }
         let style = Self {
             indent,
-            sort_keys: kwargs
-                .get::<Option<bool>>("sort_keys")?
-                .unwrap_or(sort_keys),
+            sort_keys: kwargs.get::<Option<bool>>("sort_keys")?.unwrap_or(sort_keys),
             ensure_ascii: kwargs.get::<Option<bool>>("ensure_ascii")?.unwrap_or(true),
             item_separator,
             key_separator,
@@ -163,16 +132,11 @@ fn to_json(value: JinjaValue, kwargs: Kwargs) -> Result<String, Error> {
 }
 
 fn to_nice_json(value: JinjaValue, indent: Option<usize>, kwargs: Kwargs) -> Result<String, Error> {
-    Ok(
-        JsonStyle::from_kwargs(&kwargs, Some(indent.unwrap_or(4)), true, true)?
-            .dumps(&from_jinja(&value)),
-    )
+    Ok(JsonStyle::from_kwargs(&kwargs, Some(indent.unwrap_or(4)), true, true)?.dumps(&from_jinja(&value)))
 }
 
 fn from_json(value: JinjaValue) -> Result<JinjaValue, Error> {
-    json::loads(&text(&value))
-        .map(|loaded| to_jinja(&loaded))
-        .map_err(invalid)
+    json::loads(&text(&value)).map(|loaded| to_jinja(&loaded)).map_err(invalid)
 }
 
 /// Jinja's own `tojson`: sorted keys and HTML-safe escapes, marked safe.
@@ -194,8 +158,7 @@ fn tojson(value: JinjaValue, indent: Option<usize>) -> JinjaValue {
 }
 
 fn to_bool(value: JinjaValue) -> JinjaValue {
-    if value.is_none() || value.is_undefined() || value.kind() == minijinja::value::ValueKind::Bool
-    {
+    if value.is_none() || value.is_undefined() || value.kind() == minijinja::value::ValueKind::Bool {
         return value;
     }
     let truthy = match value.as_str() {
@@ -227,10 +190,7 @@ fn windows_split(path: &str) -> (String, &str) {
         Some(index) => {
             let head = &rest[..=index];
             let trimmed = head.trim_end_matches(['/', '\\']);
-            (
-                format!("{drive}{}", if trimmed.is_empty() { head } else { trimmed }),
-                &rest[index + 1..],
-            )
+            (format!("{drive}{}", if trimmed.is_empty() { head } else { trimmed }), &rest[index + 1..])
         }
     }
 }
@@ -272,11 +232,7 @@ fn expandvars(path: &str) -> String {
 
 fn realpath(path: &str) -> String {
     let absolute = std::path::absolute(path).unwrap_or_else(|_| path.into());
-    absolute
-        .canonicalize()
-        .unwrap_or(absolute)
-        .to_string_lossy()
-        .into_owned()
+    absolute.canonicalize().unwrap_or(absolute).to_string_lossy().into_owned()
 }
 
 fn relpath(path: &str, start: Option<&str>) -> String {
@@ -342,11 +298,7 @@ fn python_replacement(replacement: &str) -> String {
                 }
                 Some('g') => {
                     chars.next();
-                    let name: String = chars
-                        .by_ref()
-                        .skip_while(|ch| *ch == '<')
-                        .take_while(|ch| *ch != '>')
-                        .collect();
+                    let name: String = chars.by_ref().skip_while(|ch| *ch == '<').take_while(|ch| *ch != '>').collect();
                     out.push_str(&format!("${{{name}}}"));
                 }
                 Some('n') => {
@@ -379,20 +331,10 @@ fn regex_replace(
     let multiline = kwargs.get::<Option<bool>>("multiline")?.unwrap_or(false);
     kwargs.assert_all_used()?;
     let regex = build_regex(&pattern, ignorecase, multiline)?;
-    Ok(regex
-        .replace_all(
-            &text(&value),
-            python_replacement(&replacement.unwrap_or_default()).as_str(),
-        )
-        .into_owned())
+    Ok(regex.replace_all(&text(&value), python_replacement(&replacement.unwrap_or_default()).as_str()).into_owned())
 }
 
-fn regex_search(
-    value: JinjaValue,
-    pattern: String,
-    groups: Rest<String>,
-    kwargs: Kwargs,
-) -> Result<JinjaValue, Error> {
+fn regex_search(value: JinjaValue, pattern: String, groups: Rest<String>, kwargs: Kwargs) -> Result<JinjaValue, Error> {
     let ignorecase = kwargs.get::<Option<bool>>("ignorecase")?.unwrap_or(false);
     let multiline = kwargs.get::<Option<bool>>("multiline")?.unwrap_or(false);
     kwargs.assert_all_used()?;
@@ -406,22 +348,12 @@ fn regex_search(
     }
     let mut items = Vec::new();
     for group in groups.iter() {
-        let reference = group
-            .strip_prefix('\\')
-            .ok_or_else(|| invalid("Unknown argument"))?;
-        let found = match reference
-            .strip_prefix("g<")
-            .and_then(|name| name.strip_suffix('>'))
-        {
+        let reference = group.strip_prefix('\\').ok_or_else(|| invalid("Unknown argument"))?;
+        let found = match reference.strip_prefix("g<").and_then(|name| name.strip_suffix('>')) {
             Some(name) => captures.name(name),
-            None => reference
-                .parse::<usize>()
-                .ok()
-                .and_then(|index| captures.get(index)),
+            None => reference.parse::<usize>().ok().and_then(|index| captures.get(index)),
         };
-        items.push(found.map_or(JinjaValue::from(()), |found| {
-            JinjaValue::from(found.as_str())
-        }));
+        items.push(found.map_or(JinjaValue::from(()), |found| JinjaValue::from(found.as_str())));
     }
     Ok(JinjaValue::from(items))
 }
@@ -494,14 +426,10 @@ fn ans_random(end: JinjaValue, kwargs: Kwargs) -> Result<JinjaValue, Error> {
         return Ok(JinjaValue::from(rng.u64(..)));
     }
     if start.is_some() || step.is_some() {
-        return Err(invalid(
-            "start and step can only be used with integer values",
-        ));
+        return Err(invalid("start and step can only be used with integer values"));
     }
-    let items: Vec<JinjaValue> = end
-        .try_iter()
-        .map_err(|_| invalid("random can only be used on sequences and integers"))?
-        .collect();
+    let items: Vec<JinjaValue> =
+        end.try_iter().map_err(|_| invalid("random can only be used on sequences and integers"))?.collect();
     if items.is_empty() {
         return Err(invalid("Cannot choose from an empty sequence"));
     }
@@ -550,9 +478,7 @@ fn merge(base: &mut Value, other: &Value, recursive: bool) {
     };
     for (key, value) in other {
         match (recursive, base.get_mut(key)) {
-            (true, Some(existing))
-                if matches!((&*existing, value), (Value::Map(_), Value::Map(_))) =>
-            {
+            (true, Some(existing)) if matches!((&*existing, value), (Value::Map(_), Value::Map(_))) => {
                 merge(existing, value, true);
             }
             _ => {
@@ -562,11 +488,7 @@ fn merge(base: &mut Value, other: &Value, recursive: bool) {
     }
 }
 
-fn combine(
-    value: JinjaValue,
-    others: Rest<JinjaValue>,
-    kwargs: Kwargs,
-) -> Result<JinjaValue, Error> {
+fn combine(value: JinjaValue, others: Rest<JinjaValue>, kwargs: Kwargs) -> Result<JinjaValue, Error> {
     let recursive = kwargs.get::<Option<bool>>("recursive")?.unwrap_or(false);
     kwargs.assert_all_used()?;
     let mut result = from_jinja(&value);
@@ -597,11 +519,7 @@ fn flatten(value: JinjaValue, kwargs: Kwargs) -> Result<JinjaValue, Error> {
     kwargs.assert_all_used()?;
     let mut out = Vec::new();
     // The outer list itself does not count as a level.
-    flatten_into(
-        &from_jinja(&value),
-        levels.map(|levels| levels + 1),
-        &mut out,
-    );
+    flatten_into(&from_jinja(&value), levels.map(|levels| levels + 1), &mut out);
     Ok(to_jinja(&Value::Seq(out)))
 }
 
@@ -610,10 +528,7 @@ fn quote(value: JinjaValue) -> String {
     if text.is_empty() {
         return "''".to_owned();
     }
-    if text
-        .chars()
-        .all(|ch| ch.is_ascii_alphanumeric() || "@%+=:,./-_".contains(ch))
-    {
+    if text.chars().all(|ch| ch.is_ascii_alphanumeric() || "@%+=:,./-_".contains(ch)) {
         return text;
     }
     format!("'{}'", text.replace('\'', "'\"'\"'"))
@@ -637,15 +552,12 @@ fn strftime(format: String, second: Option<JinjaValue>) -> Result<String, Error>
         }
     };
     let mut out = String::new();
-    write!(out, "{}", moment.format(&format))
-        .map_err(|_| invalid(format!("Invalid format string: {format}")))?;
+    write!(out, "{}", moment.format(&format)).map_err(|_| invalid(format!("Invalid format string: {format}")))?;
     Ok(out)
 }
 
 fn comment(value: JinjaValue, kwargs: Kwargs) -> Result<String, Error> {
-    let style = kwargs
-        .get::<Option<String>>("style")?
-        .unwrap_or_else(|| "plain".to_owned());
+    let style = kwargs.get::<Option<String>>("style")?.unwrap_or_else(|| "plain".to_owned());
     let (beginning, decoration, end) = match style.as_str() {
         "plain" => ("", "# ", ""),
         "erlang" => ("", "% ", ""),
@@ -654,9 +566,7 @@ fn comment(value: JinjaValue, kwargs: Kwargs) -> Result<String, Error> {
         "xml" => ("<!--", " - ", "-->"),
         other => return Err(invalid(format!("Style {other} is not supported"))),
     };
-    let decoration = kwargs
-        .get::<Option<String>>("decoration")?
-        .unwrap_or_else(|| decoration.to_owned());
+    let decoration = kwargs.get::<Option<String>>("decoration")?.unwrap_or_else(|| decoration.to_owned());
     kwargs.assert_all_used()?;
     let mut lines: Vec<String> = Vec::new();
     if !beginning.is_empty() {
@@ -665,11 +575,7 @@ fn comment(value: JinjaValue, kwargs: Kwargs) -> Result<String, Error> {
     // A decoration line frames the text, as in ansible's default prefix/postfix.
     let frame = decoration.trim_end().to_owned();
     lines.push(frame.clone());
-    lines.extend(
-        text(&value)
-            .lines()
-            .map(|line| format!("{decoration}{line}").trim_end().to_owned()),
-    );
+    lines.extend(text(&value).lines().map(|line| format!("{decoration}{line}").trim_end().to_owned()));
     lines.push(frame);
     if !end.is_empty() {
         lines.push(end.to_owned());
@@ -682,11 +588,7 @@ fn fileglob(pattern: String) -> Vec<String> {
     let (Some(dir), Some(name)) = (path.parent(), path.file_name()) else {
         return Vec::new();
     };
-    let dir = if dir.as_os_str().is_empty() {
-        Path::new(".")
-    } else {
-        dir
-    };
+    let dir = if dir.as_os_str().is_empty() { Path::new(".") } else { dir };
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
@@ -694,10 +596,7 @@ fn fileglob(pattern: String) -> Vec<String> {
         .flatten()
         .filter(|entry| {
             entry.path().is_file()
-                && crate::tools::fnmatch(
-                    &entry.file_name().to_string_lossy(),
-                    &name.to_string_lossy(),
-                )
+                && crate::tools::fnmatch(&entry.file_name().to_string_lossy(), &name.to_string_lossy())
         })
         .map(|entry| entry.path().to_string_lossy().into_owned())
         .collect();
@@ -716,36 +615,24 @@ pub(super) fn register(env: &mut Environment<'_>) {
     env.add_filter("from_json", from_json);
     env.add_filter("tojson", tojson);
     env.add_filter("bool", to_bool);
-    env.add_filter("basename", |path: JinjaValue| {
-        posix_basename(&text(&path)).to_owned()
-    });
+    env.add_filter("basename", |path: JinjaValue| posix_basename(&text(&path)).to_owned());
     env.add_filter("dirname", |path: JinjaValue| posix_dirname(&text(&path)));
-    env.add_filter("expanduser", |path: JinjaValue| {
-        crate::dirs::expand_user(&text(&path))
-    });
+    env.add_filter("expanduser", |path: JinjaValue| crate::dirs::expand_user(&text(&path)));
     env.add_filter("expandvars", |path: JinjaValue| expandvars(&text(&path)));
     env.add_filter("realpath", |path: JinjaValue| realpath(&text(&path)));
-    env.add_filter("relpath", |path: JinjaValue, start: Option<String>| {
-        relpath(&text(&path), start.as_deref())
-    });
+    env.add_filter("relpath", |path: JinjaValue, start: Option<String>| relpath(&text(&path), start.as_deref()));
     env.add_filter("splitext", |path: JinjaValue| {
         let (root, extension) = splitext(&text(&path));
         vec![root, extension]
     });
-    env.add_filter("win_basename", |path: JinjaValue| {
-        windows_split(&text(&path)).1.to_owned()
-    });
-    env.add_filter("win_dirname", |path: JinjaValue| {
-        windows_split(&text(&path)).0
-    });
+    env.add_filter("win_basename", |path: JinjaValue| windows_split(&text(&path)).1.to_owned());
+    env.add_filter("win_dirname", |path: JinjaValue| windows_split(&text(&path)).0);
     env.add_filter("win_splitdrive", |path: JinjaValue| {
         let path = text(&path);
         let (drive, rest) = windows_splitdrive(&path);
         vec![drive.to_owned(), rest.to_owned()]
     });
-    env.add_filter("b64encode", |value: JinjaValue| {
-        base64::engine::general_purpose::STANDARD.encode(text(&value))
-    });
+    env.add_filter("b64encode", |value: JinjaValue| base64::engine::general_purpose::STANDARD.encode(text(&value)));
     env.add_filter("b64decode", |value: JinjaValue| -> Result<String, Error> {
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(text(&value))
@@ -755,23 +642,14 @@ pub(super) fn register(env: &mut Environment<'_>) {
     env.add_filter("to_uuid", |value: JinjaValue| {
         uuid::Uuid::new_v5(&UUID_NAMESPACE, text(&value).as_bytes()).to_string()
     });
-    env.add_filter("md5", |value: JinjaValue| {
-        hex(&Md5::digest(text(&value).as_bytes()))
-    });
-    env.add_filter("sha1", |value: JinjaValue| {
-        hex(&Sha1::digest(text(&value).as_bytes()))
-    });
-    env.add_filter("checksum", |value: JinjaValue| {
-        hex(&Sha1::digest(text(&value).as_bytes()))
-    });
+    env.add_filter("md5", |value: JinjaValue| hex(&Md5::digest(text(&value).as_bytes())));
+    env.add_filter("sha1", |value: JinjaValue| hex(&Sha1::digest(text(&value).as_bytes())));
+    env.add_filter("checksum", |value: JinjaValue| hex(&Sha1::digest(text(&value).as_bytes())));
     env.add_filter("hash", |value: JinjaValue, hashtype: Option<String>| {
-        hash(&text(&value), hashtype.as_deref().unwrap_or("sha1"))
-            .map_or(JinjaValue::from(()), JinjaValue::from)
+        hash(&text(&value), hashtype.as_deref().unwrap_or("sha1")).map_or(JinjaValue::from(()), JinjaValue::from)
     });
     env.add_filter("regex_replace", regex_replace);
-    env.add_filter("regex_escape", |value: JinjaValue| {
-        regex::escape(&text(&value))
-    });
+    env.add_filter("regex_escape", |value: JinjaValue| regex::escape(&text(&value)));
     env.add_filter("regex_search", regex_search);
     env.add_filter("regex_findall", regex_findall);
     env.add_filter("ternary", ternary);
@@ -797,15 +675,9 @@ mod tests {
         assert_eq!(posix_dirname("/absolute/path"), "/absolute");
         assert_eq!(posix_dirname("/file"), "/");
         assert_eq!(posix_dirname("file"), "");
-        assert_eq!(
-            splitext("a/b.tar.gz"),
-            ("a/b.tar".to_owned(), ".gz".to_owned())
-        );
+        assert_eq!(splitext("a/b.tar.gz"), ("a/b.tar".to_owned(), ".gz".to_owned()));
         assert_eq!(splitext(".bashrc"), (".bashrc".to_owned(), String::new()));
-        assert_eq!(
-            windows_split(r"C:\dir\file.txt"),
-            (r"C:\dir".to_owned(), "file.txt")
-        );
+        assert_eq!(windows_split(r"C:\dir\file.txt"), (r"C:\dir".to_owned(), "file.txt"));
     }
 
     #[test]
@@ -815,10 +687,7 @@ mod tests {
 
     #[test]
     fn hashing() {
-        assert_eq!(
-            hash("a", "md5").as_deref(),
-            Some("0cc175b9c0f1b6a831c399e269772661")
-        );
+        assert_eq!(hash("a", "md5").as_deref(), Some("0cc175b9c0f1b6a831c399e269772661"));
         assert_eq!(hash("a", "nope"), None);
         assert_eq!(hash("a", "sha512").map(|digest| digest.len()), Some(128));
     }

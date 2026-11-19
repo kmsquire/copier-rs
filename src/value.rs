@@ -34,12 +34,7 @@ pub enum Value {
 impl Value {
     /// Build a mapping value from string keys.
     pub fn map<K: Into<String>, V: Into<Value>>(entries: impl IntoIterator<Item = (K, V)>) -> Self {
-        Self::Map(
-            entries
-                .into_iter()
-                .map(|(k, v)| (Self::Str(k.into()), v.into()))
-                .collect(),
-        )
+        Self::Map(entries.into_iter().map(|(k, v)| (Self::Str(k.into()), v.into())).collect())
     }
 
     /// Look up `key` in a mapping; `None` for other variants or missing keys.
@@ -157,10 +152,7 @@ impl Value {
                 format!("[{}]", parts.join(", "))
             }
             Self::Map(map) => {
-                let parts: Vec<String> = map
-                    .iter()
-                    .map(|(k, v)| format!("{}: {}", k.py_repr(), v.py_repr()))
-                    .collect();
+                let parts: Vec<String> = map.iter().map(|(k, v)| format!("{}: {}", k.py_repr(), v.py_repr())).collect();
                 format!("{{{}}}", parts.join(", "))
             }
         }
@@ -202,11 +194,7 @@ pub fn py_float_repr(number: f64) -> String {
 /// Python `repr()` of a string: single quotes unless the text contains one and no
 /// double quote.
 pub fn py_str_repr(text: &str) -> String {
-    let quote = if text.contains('\'') && !text.contains('"') {
-        '"'
-    } else {
-        '\''
-    };
+    let quote = if text.contains('\'') && !text.contains('"') { '"' } else { '\'' };
     let mut out = String::with_capacity(text.len() + 2);
     out.push(quote);
     for ch in text.chars() {
@@ -219,9 +207,7 @@ pub fn py_str_repr(text: &str) -> String {
                 out.push('\\');
                 out.push(c);
             }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
-                out.push_str(&format!("\\x{:02x}", c as u32))
-            }
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
             c => out.push(c),
         }
     }
@@ -341,14 +327,10 @@ impl From<serde_json::Value> for Value {
                 None => Self::Float(number.as_f64().unwrap_or(f64::NAN)),
             },
             serde_json::Value::String(text) => Self::Str(text),
-            serde_json::Value::Array(items) => {
-                Self::Seq(items.into_iter().map(Into::into).collect())
+            serde_json::Value::Array(items) => Self::Seq(items.into_iter().map(Into::into).collect()),
+            serde_json::Value::Object(map) => {
+                Self::Map(map.into_iter().map(|(k, v)| (Self::Str(k), v.into())).collect())
             }
-            serde_json::Value::Object(map) => Self::Map(
-                map.into_iter()
-                    .map(|(k, v)| (Self::Str(k), v.into()))
-                    .collect(),
-            ),
         }
     }
 }
@@ -359,12 +341,8 @@ mod tests {
 
     #[test]
     fn repr_matches_python() {
-        let value: Value =
-            serde_json::json!({"a": [1, 2.0, "x", null, true], "it's": "q\"'"}).into();
-        assert_eq!(
-            value.py_repr(),
-            r#"{'a': [1, 2.0, 'x', None, True], "it's": 'q"\''}"#
-        );
+        let value: Value = serde_json::json!({"a": [1, 2.0, "x", null, true], "it's": "q\"'"}).into();
+        assert_eq!(value.py_repr(), r#"{'a': [1, 2.0, 'x', None, True], "it's": 'q"\''}"#);
         assert_eq!(py_float_repr(1e16), "1e+16");
         assert_eq!(py_float_repr(0.00001), "1e-05");
         assert_eq!(py_float_repr(-1.5), "-1.5");

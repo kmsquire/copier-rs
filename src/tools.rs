@@ -19,29 +19,20 @@ pub const OS: Option<&str> = if cfg!(target_os = "linux") {
 pub fn py_float(text: &str) -> Option<f64> {
     let trimmed = text.trim();
     let digits = trimmed.trim_start_matches(['+', '-']);
-    if digits.is_empty()
-        || digits.starts_with('_')
-        || digits.ends_with('_')
-        || digits.contains("__")
-    {
+    if digits.is_empty() || digits.starts_with('_') || digits.ends_with('_') || digits.contains("__") {
         return None;
     }
     let bytes = trimmed.as_bytes();
     for (index, byte) in bytes.iter().enumerate() {
         // An underscore must sit between two digits.
-        if *byte == b'_'
-            && !(bytes[index - 1].is_ascii_digit()
-                && bytes.get(index + 1).is_some_and(u8::is_ascii_digit))
+        if *byte == b'_' && !(bytes[index - 1].is_ascii_digit() && bytes.get(index + 1).is_some_and(u8::is_ascii_digit))
         {
             return None;
         }
     }
     let cleaned = trimmed.replace('_', "");
     // Rust also accepts these spellings, but Python is the reference for the rest.
-    if cleaned
-        .chars()
-        .any(|ch| !(ch.is_ascii_alphanumeric() || "+-.".contains(ch)))
-    {
+    if cleaned.chars().any(|ch| !(ch.is_ascii_alphanumeric() || "+-.".contains(ch))) {
         return None;
     }
     cleaned.parse::<f64>().ok()
@@ -52,17 +43,10 @@ pub fn py_float(text: &str) -> Option<f64> {
 pub fn py_int(text: &str) -> Option<i64> {
     let trimmed = text.trim();
     let digits = trimmed.strip_prefix(['+', '-']).unwrap_or(trimmed);
-    if digits.is_empty()
-        || digits.starts_with('_')
-        || digits.ends_with('_')
-        || digits.contains("__")
-    {
+    if digits.is_empty() || digits.starts_with('_') || digits.ends_with('_') || digits.contains("__") {
         return None;
     }
-    if !digits
-        .bytes()
-        .all(|byte| byte.is_ascii_digit() || byte == b'_')
-    {
+    if !digits.bytes().all(|byte| byte.is_ascii_digit() || byte == b'_') {
         return None;
     }
     trimmed.replace('_', "").parse::<i64>().ok()
@@ -100,10 +84,7 @@ pub fn cast_to_str(value: &Value) -> Result<String> {
     match value {
         Value::Str(text) => Ok(text.clone()),
         Value::Int(_) | Value::Float(_) | Value::Bool(_) => Ok(value.py_str()),
-        other => Err(CopierError::Value(format!(
-            "Could not convert {} to string",
-            other.py_str()
-        ))),
+        other => Err(CopierError::Value(format!("Could not convert {} to string", other.py_str()))),
     }
 }
 
@@ -137,12 +118,7 @@ pub fn escape_git_path(path: &str) -> String {
     let leading = escaped.len() - escaped.trim_start().len();
     let trailing_start = escaped.trim_end().len().max(leading);
     let quote = |blank: &str| blank.chars().flat_map(|ch| ['\\', ch]).collect::<String>();
-    format!(
-        "{}{}{}",
-        quote(&escaped[..leading]),
-        &escaped[leading..trailing_start],
-        quote(&escaped[trailing_start..])
-    )
+    format!("{}{}{}", quote(&escaped[..leading]), &escaped[leading..trailing_start], quote(&escaped[trailing_start..]))
 }
 
 /// Shell-style match of a whole name against `pattern` (`fnmatch.fnmatchcase`):
@@ -155,19 +131,14 @@ pub fn fnmatch(name: &str, pattern: &str) -> bool {
             Some(('?', rest)) => !name.is_empty() && matches(&name[1..], rest),
             Some(('[', rest)) => {
                 // An unterminated class is a literal `[`.
-                let close = rest
-                    .iter()
-                    .skip(1)
-                    .position(|ch| *ch == ']')
-                    .map(|index| index + 1);
+                let close = rest.iter().skip(1).position(|ch| *ch == ']').map(|index| index + 1);
                 match (close, name.split_first()) {
                     (Some(close), Some((ch, name_rest))) => {
                         let (negated, class) = match rest[..close].split_first() {
                             Some(('!', class)) => (true, class),
                             _ => (false, &rest[..close]),
                         };
-                        class_contains(class, *ch) != negated
-                            && matches(name_rest, &rest[close + 1..])
+                        class_contains(class, *ch) != negated && matches(name_rest, &rest[close + 1..])
                     }
                     (Some(_), None) => false,
                     (None, _) => name.first() == Some(&'[') && matches(&name[1..], rest),

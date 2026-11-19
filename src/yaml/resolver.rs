@@ -13,9 +13,8 @@ fn anchored(pattern: &str) -> Regex {
     Regex::new(&format!("^(?:{pattern})$")).expect("valid resolver regex")
 }
 
-static BOOL: LazyLock<Regex> = LazyLock::new(|| {
-    anchored("yes|Yes|YES|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF")
-});
+static BOOL: LazyLock<Regex> =
+    LazyLock::new(|| anchored("yes|Yes|YES|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"));
 static INT: LazyLock<Regex> = LazyLock::new(|| {
     anchored(
         r"[-+]?0b[0-1_]+|[-+]?0[0-7_]+|[-+]?(?:0|[1-9][0-9_]*)|[-+]?0x[0-9a-fA-F_]+|[-+]?[1-9][0-9_]*(?::[0-5]?[0-9])+",
@@ -81,12 +80,10 @@ pub(crate) fn resolve_plain(text: &str) -> Result<Value, String> {
         Implicit::Int => construct_int(text),
         Implicit::Float => construct_float(text),
         Implicit::Timestamp => construct_timestamp(text),
-        Implicit::Merge => Err(
-            "could not determine a constructor for the tag 'tag:yaml.org,2002:merge'".to_owned(),
-        ),
-        Implicit::DefaultValue => Err(
-            "could not determine a constructor for the tag 'tag:yaml.org,2002:value'".to_owned(),
-        ),
+        Implicit::Merge => Err("could not determine a constructor for the tag 'tag:yaml.org,2002:merge'".to_owned()),
+        Implicit::DefaultValue => {
+            Err("could not determine a constructor for the tag 'tag:yaml.org,2002:value'".to_owned())
+        }
         Implicit::Str => Ok(Value::Str(text.to_owned())),
     }
 }
@@ -167,19 +164,9 @@ pub(crate) fn construct_float(text: &str) -> Result<Value, String> {
 /// Construct a `!!timestamp` scalar, normalized to Python's `str()` of the
 /// resulting `date` or `datetime`.
 pub(crate) fn construct_timestamp(text: &str) -> Result<Value, String> {
-    let captures = TIMESTAMP
-        .captures(text)
-        .ok_or_else(|| format!("invalid timestamp: {text:?}"))?;
-    let number = |index: usize| {
-        captures
-            .get(index)
-            .and_then(|m| m.as_str().parse::<u32>().ok())
-    };
-    let (year, month, day) = (
-        number(1).unwrap_or(0),
-        number(2).unwrap_or(0),
-        number(3).unwrap_or(0),
-    );
+    let captures = TIMESTAMP.captures(text).ok_or_else(|| format!("invalid timestamp: {text:?}"))?;
+    let number = |index: usize| captures.get(index).and_then(|m| m.as_str().parse::<u32>().ok());
+    let (year, month, day) = (number(1).unwrap_or(0), number(2).unwrap_or(0), number(3).unwrap_or(0));
     if !(1..=12).contains(&month) {
         return Err("month must be in 1..12".to_owned());
     }
@@ -190,11 +177,7 @@ pub(crate) fn construct_timestamp(text: &str) -> Result<Value, String> {
     let Some(hour) = number(4) else {
         return Ok(Value::Timestamp(out));
     };
-    out.push_str(&format!(
-        " {hour:02}:{:02}:{:02}",
-        number(5).unwrap_or(0),
-        number(6).unwrap_or(0)
-    ));
+    out.push_str(&format!(" {hour:02}:{:02}:{:02}", number(5).unwrap_or(0), number(6).unwrap_or(0)));
     if let Some(fraction) = captures.get(7) {
         let mut micros: String = fraction.as_str().chars().take(6).collect();
         while micros.len() < 6 {
@@ -210,11 +193,7 @@ pub(crate) fn construct_timestamp(text: &str) -> Result<Value, String> {
             out.push_str("+00:00");
         } else {
             let sign = captures.get(9).map_or("+", |m| m.as_str());
-            out.push_str(&format!(
-                "{sign}{:02}:{:02}",
-                number(10).unwrap_or(0),
-                number(11).unwrap_or(0)
-            ));
+            out.push_str(&format!("{sign}{:02}:{:02}", number(10).unwrap_or(0), number(11).unwrap_or(0)));
         }
     }
     Ok(Value::Timestamp(out))
@@ -247,10 +226,7 @@ mod tests {
             ("None", Value::from("None")),
             ("2020-01-02", Value::Timestamp("2020-01-02".to_owned())),
             ("2020-1-2", Value::from("2020-1-2")),
-            (
-                "2001-12-14t21:59:43.10-05:00",
-                Value::Timestamp("2001-12-14 21:59:43.100000-05:00".to_owned()),
-            ),
+            ("2001-12-14t21:59:43.10-05:00", Value::Timestamp("2001-12-14 21:59:43.100000-05:00".to_owned())),
             ("0o17", Value::from("0o17")),
             ("09", Value::from("09")),
         ];

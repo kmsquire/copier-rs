@@ -134,10 +134,7 @@ const HLINE: &str = "------------------------------------------";
 /// Print a status line to stderr: the action right-aligned to `indent` columns
 /// and always colored, then two spaces and the message.
 pub fn printf(action: &str, message: &str, status: Status, indent: usize) {
-    eprintln(&format!(
-        "{}{action:>indent$}{STATUS_RESET}  {message}",
-        status.codes()
-    ));
+    eprintln(&format!("{}{action:>indent$}{STATUS_RESET}  {message}", status.codes()));
 }
 
 /// Print an error banner to stderr: the action, a rule, the detail, a rule.

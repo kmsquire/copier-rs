@@ -21,10 +21,7 @@ fn decode(json: &serde_json::Value) -> Value {
                 })
             } else {
                 let pairs = object["__map__"].as_array().unwrap();
-                let map: Mapping = pairs
-                    .iter()
-                    .map(|pair| (decode(&pair[0]), decode(&pair[1])))
-                    .collect();
+                let map: Mapping = pairs.iter().map(|pair| (decode(&pair[0]), decode(&pair[1]))).collect();
                 Value::Map(map)
             }
         }
@@ -34,10 +31,7 @@ fn decode(json: &serde_json::Value) -> Value {
 }
 
 fn corpus() -> serde_json::Value {
-    let path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/yaml_corpus.json"
-    );
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/yaml_corpus.json");
     serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
@@ -47,11 +41,7 @@ fn normalize(value: &Value) -> Value {
         Value::Float(f) if f.is_nan() => Value::Float(f64::NAN),
         Value::Float(f) if *f == 0.0 => Value::Float(0.0),
         Value::Seq(items) => Value::Seq(items.iter().map(normalize).collect()),
-        Value::Map(map) => Value::Map(
-            map.iter()
-                .map(|(k, v)| (normalize(k), normalize(v)))
-                .collect(),
-        ),
+        Value::Map(map) => Value::Map(map.iter().map(|(k, v)| (normalize(k), normalize(v))).collect()),
         other => other.clone(),
     }
 }
@@ -70,37 +60,20 @@ fn loading_matches_pyyaml() {
         let ours = load_all(text);
         match (case.get("docs"), ours) {
             (Some(docs), Ok(values)) => {
-                let expected: Vec<Value> = docs
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|doc| normalize(&decode(doc)))
-                    .collect();
+                let expected: Vec<Value> = docs.as_array().unwrap().iter().map(|doc| normalize(&decode(doc))).collect();
                 let values: Vec<Value> = values.iter().map(normalize).collect();
                 if expected != values {
-                    failures.push(format!(
-                        "{text:?}\n  pyyaml: {expected:?}\n  ours:   {values:?}"
-                    ));
+                    failures.push(format!("{text:?}\n  pyyaml: {expected:?}\n  ours:   {values:?}"));
                 }
             }
             (None, Err(_)) => {}
-            (Some(_), Err(err)) => {
-                failures.push(format!("{text:?}\n  pyyaml loads it, ours fails: {err}"))
-            }
+            (Some(_), Err(err)) => failures.push(format!("{text:?}\n  pyyaml loads it, ours fails: {err}")),
             (None, Ok(values)) => {
-                failures.push(format!(
-                    "{text:?}\n  pyyaml fails ({}), ours loads: {values:?}",
-                    case["error"]
-                ));
+                failures.push(format!("{text:?}\n  pyyaml fails ({}), ours loads: {values:?}", case["error"]));
             }
         }
     }
-    assert!(
-        failures.is_empty(),
-        "{} mismatches:\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
+    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
 }
 
 #[test]
@@ -110,20 +83,10 @@ fn dumping_is_structurally_equal_to_pyyaml() {
     for case in corpus()["dumps"].as_array().unwrap() {
         let value = decode(&case["value"]);
         let options = match case["style"].as_str().unwrap() {
-            "nice" => DumpOptions {
-                indent: 4,
-                ..DumpOptions::default()
-            },
+            "nice" => DumpOptions { indent: 4, ..DumpOptions::default() },
             "block2" => DumpOptions::default(),
-            "auto" => DumpOptions {
-                flow: FlowStyle::Auto,
-                ..DumpOptions::default()
-            },
-            _ => DumpOptions {
-                flow: FlowStyle::Flow,
-                allow_unicode: false,
-                ..DumpOptions::default()
-            },
+            "auto" => DumpOptions { flow: FlowStyle::Auto, ..DumpOptions::default() },
+            _ => DumpOptions { flow: FlowStyle::Flow, allow_unicode: false, ..DumpOptions::default() },
         };
         let expected_text = case["text"].as_str().unwrap();
         let ours = dump(&value, &options);
@@ -133,13 +96,9 @@ fn dumping_is_structurally_equal_to_pyyaml() {
             continue;
         }
         if std::env::var_os("YAML_CORPUS_VERBOSE").is_some() {
-            println!(
-                "{} differs\n  pyyaml: {expected_text:?}\n  ours:   {ours:?}",
-                case["style"]
-            );
+            println!("{} differs\n  pyyaml: {expected_text:?}\n  ours:   {ours:?}", case["style"]);
         }
-        let expected =
-            load_all(expected_text).map(|docs| docs.iter().map(normalize).collect::<Vec<_>>());
+        let expected = load_all(expected_text).map(|docs| docs.iter().map(normalize).collect::<Vec<_>>());
         let reloaded = load_all(&ours).map(|docs| docs.iter().map(normalize).collect::<Vec<_>>());
         if expected.is_err() || expected != reloaded {
             failures.push(format!(
@@ -150,15 +109,7 @@ fn dumping_is_structurally_equal_to_pyyaml() {
         }
     }
     println!("byte-identical to PyYAML: {identical}/{total}");
-    assert!(
-        failures.is_empty(),
-        "{} mismatches:\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
+    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
     // Guards against the emitter drifting away from PyYAML's style for ordinary data.
-    assert!(
-        identical * 10 >= total * 8,
-        "only {identical}/{total} dumps are byte-identical"
-    );
+    assert!(identical * 10 >= total * 8, "only {identical}/{total} dumps are byte-identical");
 }
