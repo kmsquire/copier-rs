@@ -20,17 +20,17 @@ The approved plan: `~/.claude/plans/please-create-a-complete-nifty-melody.md`.
 | Phase | State |
 |---|---|
 | 0 Setup and spikes | done |
-| 1 Port all tests | in progress |
-| 2 Foundations (errors, yaml, tools, settings, pathspec, PEP 440, vcs) | not started |
-| 3 Template, Jinja, questions | not started |
-| 4 Copy, recopy, CLI | not started |
+| 1 Port all tests | done (merged 2026-11-19; reviews: no blocking findings) |
+| 2 Foundations (errors, yaml, tools, settings, pathspec, PEP 440, vcs) | implemented in the worktree; tests not yet un-ignored |
+| 3 Template, Jinja, questions | implemented in the worktree; tests not yet un-ignored |
+| 4 Copy, recopy, CLI | engine written in the worktree (copy path compiles); CLI not started |
 | 5 Update, migrations, check-update | not started |
 | 6 Interactive prompts | not started |
 | 7 Parity, performance, polish | not started |
 
 ## Where the code is right now (2026-11-19)
 
-- `copier-rs/` (this checkout) is on `phase-1-port-tests`: ported test modules only.
+- `copier-rs/` (this checkout): `main` holds the ported test suite, all ignored.
 - `../copier-rs-wt/` is a git worktree on `phase-2-foundations`, branched from
   `main`, holding implementation written while test porting ran: `yaml/`
   (loader, emitter, PyYAML corpus test), `tools`, `dirs`, `settings`, `version`,
@@ -56,6 +56,27 @@ The approved plan: `~/.claude/plans/please-create-a-complete-nifty-melody.md`.
 - Help output at a fixed width of 80 (`test_cli` help snapshots).
 - Python Jinja extensions (`test_context`, `test_jinja2_extensions`, and the
   `test_unsafe` cases that actually load one): no Rust equivalent; decide per test.
+
+## Review follow-ups to do while un-ignoring modules
+
+- Move duplicated test helpers into `tests/common`: JSON-to-`Mapping`, recursive
+  directory copy, `bracket_envops`, and replace the `yaml_safe_load` stubs in
+  `test_copy`/`test_prompt` with `copier::yaml::load`.
+- Derive `Debug` for `Worker` and drop `test_copy`'s local `expect_err`.
+- `tests/common::Tui` reads stdout and stderr on separate threads; if a test flakes
+  on ordering, merge the streams at the OS level instead.
+
+- Platform marks: most Python `xfail`/`skipif` marks are comments in the ports.
+  When un-ignoring, turn each into `#[cfg(...)]` or a runtime skip; known ones:
+  `test_exclude::test_path_filter` (strict xfail on macOS), the Darwin/Windows
+  cases in `test_updatediff` (`test_skip_update_deleted`, `test_update_deleted_path`,
+  the special-characters test) and its `git >= 2.55` xfail.
+- Two ports lost their teeth when a Python monkeypatch was dropped and must not be
+  un-ignored as they are: `test_config::test_authorization_does_not_enable_python_yaml_tags`
+  (its marker file check depends on the working directory) and
+  `test_answersfile::test_external_data_with_unicode_characters` (default-encoding
+  dependence cannot occur in Rust; decide whether the test still says anything).
+- `test_interrupts` dropped the `CopierAnswersInterrupt` parametrize case.
 
 ## How to work here
 
@@ -88,4 +109,5 @@ The approved plan: `~/.claude/plans/please-create-a-complete-nifty-melody.md`.
 
 ## Next steps
 
-See the phase table in the plan. Current: finish porting tests (phase 1).
+See the phase table in the plan. Current: rebase the worktree branch onto `main`,
+un-ignore tests module by module, fix what fails, then cut the phase 2 merge.

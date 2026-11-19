@@ -1,4 +1,6 @@
 # Test isolation: ported tests must not read the developer's git config or cache.
+# Note that this applies to every cargo command, `cargo run` included; run the
+# built binary directly (`target/debug/copier`) to use your own git config.
 [env]
 GIT_CONFIG_GLOBAL = { value = "tests/fixtures/gitconfig", relative = true, force = true }
 GIT_CONFIG_NOSYSTEM = { value = "1", force = true }

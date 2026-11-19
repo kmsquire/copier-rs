@@ -18,6 +18,7 @@ only need to COMPILE; do not try to make them pass and do not run them.
    possible, mark the test `#[ignore = "needs-design: <short reason>"]` instead of
    `pending`, and leave a `// TODO(port): <what is missing>` comment at the spot.
    Still keep the full test body, with the unportable lines as comments.
+   A `needs-design` test is not a shortcut: everything that can be expressed must be.
 4. A test that only checks a Python-specific thing with no Rust meaning (mypy,
    deprecated import paths, pydantic model internals) is not ported: list it in
    your report as N/A with the reason.
