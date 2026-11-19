@@ -14,6 +14,7 @@ pub mod tools;
 pub mod value;
 pub mod vcs;
 pub mod worker;
+pub mod yaml;
 
 pub use errors::{CopierError, Result};
 pub use questions::load_answersfile_data;

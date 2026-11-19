@@ -17,12 +17,13 @@ path = "src/main.rs"
 
 [dependencies]
 indexmap = "2"
-serde_json = { version = "1", features = ["preserve_order"] }
+regex = "1"
+saphyr-parser = "0.3"
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 thiserror = "2"
 
 [dev-dependencies]
 indoc = "2"
-regex = "1"
 rstest = "0.26"
 tempfile = "3"
 

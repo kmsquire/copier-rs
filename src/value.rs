@@ -23,6 +23,8 @@ pub enum Value {
     Float(f64),
     /// Text.
     Str(String),
+    /// A YAML timestamp, kept as Python's `str()` of the `date`/`datetime` it denotes.
+    Timestamp(String),
     /// Ordered list.
     Seq(Vec<Value>),
     /// Insertion-ordered mapping.
@@ -114,6 +116,7 @@ impl Value {
             Self::Int(number) => *number != 0,
             Self::Float(number) => *number != 0.0,
             Self::Str(text) => !text.is_empty(),
+            Self::Timestamp(_) => true,
             Self::Seq(items) => !items.is_empty(),
             Self::Map(map) => !map.is_empty(),
         }
@@ -127,6 +130,13 @@ impl Value {
             Self::Int(_) => "int",
             Self::Float(_) => "float",
             Self::Str(_) => "str",
+            Self::Timestamp(text) => {
+                if text.len() > 10 {
+                    "datetime"
+                } else {
+                    "date"
+                }
+            }
             Self::Seq(_) => "list",
             Self::Map(_) => "dict",
         }
@@ -141,6 +151,7 @@ impl Value {
             Self::Int(number) => number.to_string(),
             Self::Float(number) => py_float_repr(*number),
             Self::Str(text) => py_str_repr(text),
+            Self::Timestamp(text) => text.clone(),
             Self::Seq(items) => {
                 let parts: Vec<String> = items.iter().map(Self::py_repr).collect();
                 format!("[{}]", parts.join(", "))
@@ -226,7 +237,7 @@ impl PartialEq for Value {
             (Self::Int(a), Self::Int(b)) => a == b,
             // Bitwise so that `Eq`/`Hash` hold and NaN keys stay addressable.
             (Self::Float(a), Self::Float(b)) => a.to_bits() == b.to_bits(),
-            (Self::Str(a), Self::Str(b)) => a == b,
+            (Self::Str(a), Self::Str(b)) | (Self::Timestamp(a), Self::Timestamp(b)) => a == b,
             (Self::Seq(a), Self::Seq(b)) => a == b,
             (Self::Map(a), Self::Map(b)) => a == b,
             _ => false,
@@ -244,7 +255,7 @@ impl Hash for Value {
             Self::Bool(flag) => flag.hash(state),
             Self::Int(number) => number.hash(state),
             Self::Float(number) => number.to_bits().hash(state),
-            Self::Str(text) => text.hash(state),
+            Self::Str(text) | Self::Timestamp(text) => text.hash(state),
             Self::Seq(items) => items.hash(state),
             Self::Map(map) => {
                 for (key, value) in map {

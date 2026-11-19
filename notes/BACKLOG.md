@@ -12,3 +12,5 @@ Deferred work. Each item says why it was deferred.
 - **Integers beyond 64 bits** in answers.
 - **YAML/JSON syntax highlighting** in input prompts.
 - **Windows**: untested; the Python suite's Windows-only cases are not ported.
+- **Tab-indented YAML** (`\ta: 1`) is rejected by PyYAML's scanner but accepted here
+  (the underlying parser follows YAML 1.2).

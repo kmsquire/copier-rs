@@ -1,0 +1,3010 @@
+{
+ "loads": [
+  {
+   "text": "a: 1",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: yes\nb: No\nc: on\nd: OFF\ne: y\nf: n",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       true
+      ],
+      [
+       "b",
+       false
+      ],
+      [
+       "c",
+       true
+      ],
+      [
+       "d",
+       false
+      ],
+      [
+       "e",
+       "y"
+      ],
+      [
+       "f",
+       "n"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "- 010\n- 0x1f\n- 0b101\n- 1_000\n- 190:20:30\n- 0o17\n- 09\n- +12\n- -0",
+   "docs": [
+    [
+     8,
+     31,
+     5,
+     1000,
+     685230,
+     "0o17",
+     "09",
+     12,
+     0
+    ]
+   ]
+  },
+  {
+   "text": "- 1.5\n- 1e5\n- 1.5e3\n- 1.5e+3\n- .5\n- 5.\n- .inf\n- -.INF\n- 1_0.2_5\n- 1:30.5\n- +.5",
+   "docs": [
+    [
+     1.5,
+     "1e5",
+     "1.5e3",
+     1500.0,
+     0.5,
+     5.0,
+     {
+      "__float__": "inf"
+     },
+     {
+      "__float__": "-inf"
+     },
+     10.25,
+     90.5,
+     "+.5"
+    ]
+   ]
+  },
+  {
+   "text": "- ~\n- null\n- Null\n- NULL\n-\n- None\n- nil",
+   "docs": [
+    [
+     null,
+     null,
+     null,
+     null,
+     null,
+     "None",
+     "nil"
+    ]
+   ]
+  },
+  {
+   "text": "- 2020-01-02\n- 2020-1-2\n- 2001-12-14t21:59:43.10-05:00\n- 2001-12-14 21:59:43\n- 2001-12-15 2:59:43.1Z\n- 2020-01-02x",
+   "docs": [
+    [
+     {
+      "__timestamp__": "2020-01-02"
+     },
+     "2020-1-2",
+     {
+      "__timestamp__": "2001-12-14 21:59:43.100000-05:00"
+     },
+     {
+      "__timestamp__": "2001-12-14 21:59:43"
+     },
+     {
+      "__timestamp__": "2001-12-15 02:59:43.100000+00:00"
+     },
+     "2020-01-02x"
+    ]
+   ]
+  },
+  {
+   "text": "a: 'yes'\nb: \"1\"\nc: !!str 1\nd: !!int '010'\ne: !!float 1\nf: ! 12\ng: !!bool 'no'\nh: !!null x",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       "yes"
+      ],
+      [
+       "b",
+       "1"
+      ],
+      [
+       "c",
+       "1"
+      ],
+      [
+       "d",
+       8
+      ],
+      [
+       "e",
+       1.0
+      ],
+      [
+       "f",
+       12
+      ],
+      [
+       "g",
+       false
+      ],
+      [
+       "h",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "base: &b {x: 1, y: 2}\nother: &o {y: 9, z: 3}\nm:\n  <<: [*b, *o]\n  x: 5\n  w: 0\nn:\n  w: 0\n  <<: *b",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "base",
+       {
+        "__map__": [
+         [
+          "x",
+          1
+         ],
+         [
+          "y",
+          2
+         ]
+        ]
+       }
+      ],
+      [
+       "other",
+       {
+        "__map__": [
+         [
+          "y",
+          9
+         ],
+         [
+          "z",
+          3
+         ]
+        ]
+       }
+      ],
+      [
+       "m",
+       {
+        "__map__": [
+         [
+          "y",
+          2
+         ],
+         [
+          "z",
+          3
+         ],
+         [
+          "x",
+          5
+         ],
+         [
+          "w",
+          0
+         ]
+        ]
+       }
+      ],
+      [
+       "n",
+       {
+        "__map__": [
+         [
+          "x",
+          1
+         ],
+         [
+          "y",
+          2
+         ],
+         [
+          "w",
+          0
+         ]
+        ]
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: 1\nb: 2\na: 3",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       3
+      ],
+      [
+       "b",
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "1: a\ntrue: b\n~: c\n1.5: d",
+   "docs": [
+    {
+     "__map__": [
+      [
+       1,
+       "b"
+      ],
+      [
+       null,
+       "c"
+      ],
+      [
+       1.5,
+       "d"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: |\n  line1\n  line2\nb: >\n  folded\n  text\n\n  para\nc: |-\n  strip\nd: |+\n  keep\n\n",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       "line1\nline2\n"
+      ],
+      [
+       "b",
+       "folded text\npara\n"
+      ],
+      [
+       "c",
+       "strip"
+      ],
+      [
+       "d",
+       "keep\n\n"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "",
+   "docs": []
+  },
+  {
+   "text": "# just a comment",
+   "docs": []
+  },
+  {
+   "text": "---\n",
+   "docs": [
+    null
+   ]
+  },
+  {
+   "text": "a:\n  - b\n  -\n    - c\n    - d: e\n      f: [g, {h: i}]",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       [
+        "b",
+        [
+         "c",
+         {
+          "__map__": [
+           [
+            "d",
+            "e"
+           ],
+           [
+            "f",
+            [
+             "g",
+             {
+              "__map__": [
+               [
+                "h",
+                "i"
+               ]
+              ]
+             }
+            ]
+           ]
+          ]
+         }
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "? a\n: b",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       "b"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: \"\\x41\\u00e9\\n\\t\\\\\"\nb: 'it''s'\nc: \"multi\n  line\"\nd: plain\n  continued",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       "Aé\n\t\\"
+      ],
+      [
+       "b",
+       "it's"
+      ],
+      [
+       "c",
+       "multi line"
+      ],
+      [
+       "d",
+       "plain continued"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: {b: c, d: [e, f], g: }\nh: [ ]\ni: { }",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       {
+        "__map__": [
+         [
+          "b",
+          "c"
+         ],
+         [
+          "d",
+          [
+           "e",
+           "f"
+          ]
+         ],
+         [
+          "g",
+          null
+         ]
+        ]
+       }
+      ],
+      [
+       "h",
+       []
+      ],
+      [
+       "i",
+       {
+        "__map__": []
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "emoji: 🎤\numlaut: ä\ncjk: 日本",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "emoji",
+       "🎤"
+      ],
+      [
+       "umlaut",
+       "ä"
+      ],
+      [
+       "cjk",
+       "日本"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: b: c",
+   "error": "ScannerError"
+  },
+  {
+   "text": "a: [1, 2",
+   "error": "ParserError"
+  },
+  {
+   "text": "- !!python/name:os.system x",
+   "error": "ConstructorError"
+  },
+  {
+   "text": "a: !unknown 1",
+   "error": "ConstructorError"
+  },
+  {
+   "text": "key: value\n  bad indent: here",
+   "error": "ScannerError"
+  },
+  {
+   "text": "'quoted key': 1\n\"dq key\": 2\n? complex\n: 3",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "quoted key",
+       1
+      ],
+      [
+       "dq key",
+       2
+      ],
+      [
+       "complex",
+       3
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: 1 # comment\nb: 'x # not comment'\nc: x#y",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ],
+      [
+       "b",
+       "x # not comment"
+      ],
+      [
+       "c",
+       "x#y"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "- - - deep\n- - a\n  - b",
+   "docs": [
+    [
+     [
+      [
+       "deep"
+      ]
+     ],
+     [
+      "a",
+      "b"
+     ]
+    ]
+   ]
+  },
+  {
+   "text": "a: -\nb: - x\nc: -1\nd: '-'",
+   "error": "ScannerError"
+  },
+  {
+   "text": "str: 0o14\ncolon: a:b\nurl: http://x.y/z?q=1#frag\ntime: 12:30:45\nver: 1.2.3\ne: 1e3\ntilde: ~x",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "str",
+       "0o14"
+      ],
+      [
+       "colon",
+       "a:b"
+      ],
+      [
+       "url",
+       "http://x.y/z?q=1#frag"
+      ],
+      [
+       "time",
+       45045
+      ],
+      [
+       "ver",
+       "1.2.3"
+      ],
+      [
+       "e",
+       "1e3"
+      ],
+      [
+       "tilde",
+       "~x"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: &x 1\nb: *x\nc: &y [1, 2]\nd: *y",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ],
+      [
+       "b",
+       1
+      ],
+      [
+       "c",
+       [
+        1,
+        2
+       ]
+      ],
+      [
+       "d",
+       [
+        1,
+        2
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "%YAML 1.1\n---\na: 1",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: 1\n---\nb: 2",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ]
+     ]
+    },
+    {
+     "__map__": [
+      [
+       "b",
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "a: 1\n...\n",
+   "docs": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "text": "- 123456789012345678901234567890\n- 0x7fffffffffffffff",
+   "docs": [
+    [
+     123456789012345678901234567890,
+     9223372036854775807
+    ]
+   ]
+  },
+  {
+   "text": "a: =\nb: '<<'\nc: <<",
+   "error": "ConstructorError"
+  },
+  {
+   "text": "\ta: 1",
+   "error": "ScannerError"
+  },
+  {
+   "text": "a:\tb",
+   "error": "ScannerError"
+  },
+  {
+   "text": "a: 'unterminated",
+   "error": "ScannerError"
+  },
+  {
+   "text": "[a, b]: c",
+   "error": "ConstructorError"
+  },
+  {
+   "text": "{a: 1}: c",
+   "error": "ConstructorError"
+  },
+  {
+   "text": "a: *undefined",
+   "error": "ComposerError"
+  }
+ ],
+ "dumps": [
+  {
+   "value": {
+    "__map__": [
+     [
+      "_commit",
+      "v1.0.0"
+     ],
+     [
+      "_src_path",
+      "gh:org/tpl"
+     ],
+     [
+      "name",
+      "x"
+     ],
+     [
+      "flag",
+      true
+     ],
+     [
+      "n",
+      3
+     ],
+     [
+      "f",
+      1.5
+     ],
+     [
+      "none",
+      null
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "_commit: v1.0.0\n_src_path: gh:org/tpl\nf: 1.5\nflag: true\nn: 3\nname: x\nnone: null\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "_commit",
+      "v1.0.0"
+     ],
+     [
+      "_src_path",
+      "gh:org/tpl"
+     ],
+     [
+      "name",
+      "x"
+     ],
+     [
+      "flag",
+      true
+     ],
+     [
+      "n",
+      3
+     ],
+     [
+      "f",
+      1.5
+     ],
+     [
+      "none",
+      null
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "_commit: v1.0.0\n_src_path: gh:org/tpl\nf: 1.5\nflag: true\nn: 3\nname: x\nnone: null\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "_commit",
+      "v1.0.0"
+     ],
+     [
+      "_src_path",
+      "gh:org/tpl"
+     ],
+     [
+      "name",
+      "x"
+     ],
+     [
+      "flag",
+      true
+     ],
+     [
+      "n",
+      3
+     ],
+     [
+      "f",
+      1.5
+     ],
+     [
+      "none",
+      null
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{_commit: v1.0.0, _src_path: 'gh:org/tpl', f: 1.5, flag: true, n: 3, name: x, none: null}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "_commit",
+      "v1.0.0"
+     ],
+     [
+      "_src_path",
+      "gh:org/tpl"
+     ],
+     [
+      "name",
+      "x"
+     ],
+     [
+      "flag",
+      true
+     ],
+     [
+      "n",
+      3
+     ],
+     [
+      "f",
+      1.5
+     ],
+     [
+      "none",
+      null
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{_commit: v1.0.0, _src_path: 'gh:org/tpl', f: 1.5, flag: true, n: 3, name: x, none: null}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "b",
+         [
+          1,
+          {
+           "__map__": [
+            [
+             "x",
+             1
+            ],
+            [
+             "y",
+             [
+              2,
+              3
+             ]
+            ]
+           ]
+          },
+          [
+           4,
+           5
+          ]
+         ]
+        ],
+        [
+         "c",
+         {
+          "__map__": []
+         }
+        ],
+        [
+         "d",
+         []
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "a:\n    b:\n    - 1\n    -   x: 1\n        y:\n        - 2\n        - 3\n    -   - 4\n        - 5\n    c: {}\n    d: []\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "b",
+         [
+          1,
+          {
+           "__map__": [
+            [
+             "x",
+             1
+            ],
+            [
+             "y",
+             [
+              2,
+              3
+             ]
+            ]
+           ]
+          },
+          [
+           4,
+           5
+          ]
+         ]
+        ],
+        [
+         "c",
+         {
+          "__map__": []
+         }
+        ],
+        [
+         "d",
+         []
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "a:\n  b:\n  - 1\n  - x: 1\n    y:\n    - 2\n    - 3\n  - - 4\n    - 5\n  c: {}\n  d: []\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "b",
+         [
+          1,
+          {
+           "__map__": [
+            [
+             "x",
+             1
+            ],
+            [
+             "y",
+             [
+              2,
+              3
+             ]
+            ]
+           ]
+          },
+          [
+           4,
+           5
+          ]
+         ]
+        ],
+        [
+         "c",
+         {
+          "__map__": []
+         }
+        ],
+        [
+         "d",
+         []
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "a:\n  b:\n  - 1\n  - x: 1\n    y: [2, 3]\n  - [4, 5]\n  c: {}\n  d: []\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "b",
+         [
+          1,
+          {
+           "__map__": [
+            [
+             "x",
+             1
+            ],
+            [
+             "y",
+             [
+              2,
+              3
+             ]
+            ]
+           ]
+          },
+          [
+           4,
+           5
+          ]
+         ]
+        ],
+        [
+         "c",
+         {
+          "__map__": []
+         }
+        ],
+        [
+         "d",
+         []
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{a: {b: [1, {x: 1, y: [2, 3]}, [4, 5]], c: {}, d: []}}\n"
+  },
+  {
+   "value": [
+    "yes",
+    "No",
+    "on",
+    "y",
+    "1",
+    "1.0",
+    "",
+    "a: b",
+    "a #b",
+    "a#b",
+    "- x",
+    "-x",
+    "it's",
+    "null",
+    "~",
+    "a\nb",
+    "@x",
+    "2020-01-01",
+    " x",
+    "x ",
+    "x:",
+    ":x",
+    "a:b"
+   ],
+   "style": "nice",
+   "text": "- 'yes'\n- 'No'\n- 'on'\n- y\n- '1'\n- '1.0'\n- ''\n- 'a: b'\n- 'a #b'\n- a#b\n- '- x'\n- -x\n- it's\n- 'null'\n- '~'\n- 'a\n\n    b'\n- '@x'\n- '2020-01-01'\n- ' x'\n- 'x '\n- 'x:'\n- :x\n- a:b\n"
+  },
+  {
+   "value": [
+    "yes",
+    "No",
+    "on",
+    "y",
+    "1",
+    "1.0",
+    "",
+    "a: b",
+    "a #b",
+    "a#b",
+    "- x",
+    "-x",
+    "it's",
+    "null",
+    "~",
+    "a\nb",
+    "@x",
+    "2020-01-01",
+    " x",
+    "x ",
+    "x:",
+    ":x",
+    "a:b"
+   ],
+   "style": "block2",
+   "text": "- 'yes'\n- 'No'\n- 'on'\n- y\n- '1'\n- '1.0'\n- ''\n- 'a: b'\n- 'a #b'\n- a#b\n- '- x'\n- -x\n- it's\n- 'null'\n- '~'\n- 'a\n\n  b'\n- '@x'\n- '2020-01-01'\n- ' x'\n- 'x '\n- 'x:'\n- :x\n- a:b\n"
+  },
+  {
+   "value": [
+    "yes",
+    "No",
+    "on",
+    "y",
+    "1",
+    "1.0",
+    "",
+    "a: b",
+    "a #b",
+    "a#b",
+    "- x",
+    "-x",
+    "it's",
+    "null",
+    "~",
+    "a\nb",
+    "@x",
+    "2020-01-01",
+    " x",
+    "x ",
+    "x:",
+    ":x",
+    "a:b"
+   ],
+   "style": "auto",
+   "text": "['yes', 'No', 'on', y, '1', '1.0', '', 'a: b', 'a #b', a#b, '- x', -x, it's, 'null',\n  '~', 'a\n\n    b', '@x', '2020-01-01', ' x', 'x ', 'x:', ':x', 'a:b']\n"
+  },
+  {
+   "value": [
+    "yes",
+    "No",
+    "on",
+    "y",
+    "1",
+    "1.0",
+    "",
+    "a: b",
+    "a #b",
+    "a#b",
+    "- x",
+    "-x",
+    "it's",
+    "null",
+    "~",
+    "a\nb",
+    "@x",
+    "2020-01-01",
+    " x",
+    "x ",
+    "x:",
+    ":x",
+    "a:b"
+   ],
+   "style": "flow",
+   "text": "['yes', 'No', 'on', y, '1', '1.0', '', 'a: b', 'a #b', a#b, '- x', -x, it's, 'null', '~', 'a\n\n    b', '@x', '2020-01-01', ' x', 'x ', 'x:', ':x', 'a:b']\n"
+  },
+  {
+   "value": [
+    "0x10",
+    "010",
+    "1e5",
+    "1.5e+3",
+    ".5",
+    "1_000",
+    "1:30",
+    "<<",
+    "=",
+    "---",
+    "...",
+    "--- x",
+    "?",
+    "? x",
+    "?x",
+    "!x",
+    "&x",
+    "*x",
+    "|",
+    ">",
+    "%x",
+    "`x",
+    "[x",
+    "]x",
+    "{x",
+    "}x",
+    "x,y",
+    ",x",
+    "'q'",
+    "\"q\"",
+    "#x",
+    "x #",
+    "true",
+    "True",
+    "TRUE",
+    "nan",
+    ".nan",
+    ".inf",
+    "Null"
+   ],
+   "style": "nice",
+   "text": "- '0x10'\n- '010'\n- 1e5\n- '1.5e+3'\n- '.5'\n- '1_000'\n- '1:30'\n- '<<'\n- '='\n- '---'\n- '...'\n- '--- x'\n- '?'\n- '? x'\n- ?x\n- '!x'\n- '&x'\n- '*x'\n- '|'\n- '>'\n- '%x'\n- '`x'\n- '[x'\n- ']x'\n- '{x'\n- '}x'\n- x,y\n- ',x'\n- '''q'''\n- '\"q\"'\n- '#x'\n- 'x #'\n- 'true'\n- 'True'\n- 'TRUE'\n- nan\n- '.nan'\n- '.inf'\n- 'Null'\n"
+  },
+  {
+   "value": [
+    "0x10",
+    "010",
+    "1e5",
+    "1.5e+3",
+    ".5",
+    "1_000",
+    "1:30",
+    "<<",
+    "=",
+    "---",
+    "...",
+    "--- x",
+    "?",
+    "? x",
+    "?x",
+    "!x",
+    "&x",
+    "*x",
+    "|",
+    ">",
+    "%x",
+    "`x",
+    "[x",
+    "]x",
+    "{x",
+    "}x",
+    "x,y",
+    ",x",
+    "'q'",
+    "\"q\"",
+    "#x",
+    "x #",
+    "true",
+    "True",
+    "TRUE",
+    "nan",
+    ".nan",
+    ".inf",
+    "Null"
+   ],
+   "style": "block2",
+   "text": "- '0x10'\n- '010'\n- 1e5\n- '1.5e+3'\n- '.5'\n- '1_000'\n- '1:30'\n- '<<'\n- '='\n- '---'\n- '...'\n- '--- x'\n- '?'\n- '? x'\n- ?x\n- '!x'\n- '&x'\n- '*x'\n- '|'\n- '>'\n- '%x'\n- '`x'\n- '[x'\n- ']x'\n- '{x'\n- '}x'\n- x,y\n- ',x'\n- '''q'''\n- '\"q\"'\n- '#x'\n- 'x #'\n- 'true'\n- 'True'\n- 'TRUE'\n- nan\n- '.nan'\n- '.inf'\n- 'Null'\n"
+  },
+  {
+   "value": [
+    "0x10",
+    "010",
+    "1e5",
+    "1.5e+3",
+    ".5",
+    "1_000",
+    "1:30",
+    "<<",
+    "=",
+    "---",
+    "...",
+    "--- x",
+    "?",
+    "? x",
+    "?x",
+    "!x",
+    "&x",
+    "*x",
+    "|",
+    ">",
+    "%x",
+    "`x",
+    "[x",
+    "]x",
+    "{x",
+    "}x",
+    "x,y",
+    ",x",
+    "'q'",
+    "\"q\"",
+    "#x",
+    "x #",
+    "true",
+    "True",
+    "TRUE",
+    "nan",
+    ".nan",
+    ".inf",
+    "Null"
+   ],
+   "style": "auto",
+   "text": "['0x10', '010', 1e5, '1.5e+3', '.5', '1_000', '1:30', '<<', '=', '---', '...', '---\n    x', '?', '? x', '?x', '!x', '&x', '*x', '|', '>', '%x', '`x', '[x', ']x', '{x',\n  '}x', 'x,y', ',x', '''q''', '\"q\"', '#x', 'x #', 'true', 'True', 'TRUE', nan, '.nan',\n  '.inf', 'Null']\n"
+  },
+  {
+   "value": [
+    "0x10",
+    "010",
+    "1e5",
+    "1.5e+3",
+    ".5",
+    "1_000",
+    "1:30",
+    "<<",
+    "=",
+    "---",
+    "...",
+    "--- x",
+    "?",
+    "? x",
+    "?x",
+    "!x",
+    "&x",
+    "*x",
+    "|",
+    ">",
+    "%x",
+    "`x",
+    "[x",
+    "]x",
+    "{x",
+    "}x",
+    "x,y",
+    ",x",
+    "'q'",
+    "\"q\"",
+    "#x",
+    "x #",
+    "true",
+    "True",
+    "TRUE",
+    "nan",
+    ".nan",
+    ".inf",
+    "Null"
+   ],
+   "style": "flow",
+   "text": "['0x10', '010', 1e5, '1.5e+3', '.5', '1_000', '1:30', '<<', '=', '---', '...', '--- x', '?', '? x', '?x', '!x', '&x', '*x', '|', '>', '%x', '`x', '[x', ']x', '{x', '}x', 'x,y', ',x', '''q''', '\"q\"', '#x', 'x #', 'true', 'True', 'TRUE', nan, '.nan', '.inf', 'Null']\n"
+  },
+  {
+   "value": "foo",
+   "style": "nice",
+   "text": "foo\n...\n"
+  },
+  {
+   "value": "foo",
+   "style": "block2",
+   "text": "foo\n...\n"
+  },
+  {
+   "value": "foo",
+   "style": "auto",
+   "text": "foo\n...\n"
+  },
+  {
+   "value": "foo",
+   "style": "flow",
+   "text": "foo\n...\n"
+  },
+  {
+   "value": "yes",
+   "style": "nice",
+   "text": "'yes'\n"
+  },
+  {
+   "value": "yes",
+   "style": "block2",
+   "text": "'yes'\n"
+  },
+  {
+   "value": "yes",
+   "style": "auto",
+   "text": "'yes'\n"
+  },
+  {
+   "value": "yes",
+   "style": "flow",
+   "text": "'yes'\n"
+  },
+  {
+   "value": "",
+   "style": "nice",
+   "text": "''\n"
+  },
+  {
+   "value": "",
+   "style": "block2",
+   "text": "''\n"
+  },
+  {
+   "value": "",
+   "style": "auto",
+   "text": "''\n"
+  },
+  {
+   "value": "",
+   "style": "flow",
+   "text": "''\n"
+  },
+  {
+   "value": null,
+   "style": "nice",
+   "text": "null\n...\n"
+  },
+  {
+   "value": null,
+   "style": "block2",
+   "text": "null\n...\n"
+  },
+  {
+   "value": null,
+   "style": "auto",
+   "text": "null\n...\n"
+  },
+  {
+   "value": null,
+   "style": "flow",
+   "text": "null\n...\n"
+  },
+  {
+   "value": true,
+   "style": "nice",
+   "text": "true\n...\n"
+  },
+  {
+   "value": true,
+   "style": "block2",
+   "text": "true\n...\n"
+  },
+  {
+   "value": true,
+   "style": "auto",
+   "text": "true\n...\n"
+  },
+  {
+   "value": true,
+   "style": "flow",
+   "text": "true\n...\n"
+  },
+  {
+   "value": 3,
+   "style": "nice",
+   "text": "3\n...\n"
+  },
+  {
+   "value": 3,
+   "style": "block2",
+   "text": "3\n...\n"
+  },
+  {
+   "value": 3,
+   "style": "auto",
+   "text": "3\n...\n"
+  },
+  {
+   "value": 3,
+   "style": "flow",
+   "text": "3\n...\n"
+  },
+  {
+   "value": 1.5,
+   "style": "nice",
+   "text": "1.5\n...\n"
+  },
+  {
+   "value": 1.5,
+   "style": "block2",
+   "text": "1.5\n...\n"
+  },
+  {
+   "value": 1.5,
+   "style": "auto",
+   "text": "1.5\n...\n"
+  },
+  {
+   "value": 1.5,
+   "style": "flow",
+   "text": "1.5\n...\n"
+  },
+  {
+   "value": [],
+   "style": "nice",
+   "text": "[]\n"
+  },
+  {
+   "value": [],
+   "style": "block2",
+   "text": "[]\n"
+  },
+  {
+   "value": [],
+   "style": "auto",
+   "text": "[]\n"
+  },
+  {
+   "value": [],
+   "style": "flow",
+   "text": "[]\n"
+  },
+  {
+   "value": {
+    "__map__": []
+   },
+   "style": "nice",
+   "text": "{}\n"
+  },
+  {
+   "value": {
+    "__map__": []
+   },
+   "style": "block2",
+   "text": "{}\n"
+  },
+  {
+   "value": {
+    "__map__": []
+   },
+   "style": "auto",
+   "text": "{}\n"
+  },
+  {
+   "value": {
+    "__map__": []
+   },
+   "style": "flow",
+   "text": "{}\n"
+  },
+  {
+   "value": [
+    []
+   ],
+   "style": "nice",
+   "text": "- []\n"
+  },
+  {
+   "value": [
+    []
+   ],
+   "style": "block2",
+   "text": "- []\n"
+  },
+  {
+   "value": [
+    []
+   ],
+   "style": "auto",
+   "text": "- []\n"
+  },
+  {
+   "value": [
+    []
+   ],
+   "style": "flow",
+   "text": "[[]]\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": []
+    }
+   ],
+   "style": "nice",
+   "text": "- {}\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": []
+    }
+   ],
+   "style": "block2",
+   "text": "- {}\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": []
+    }
+   ],
+   "style": "auto",
+   "text": "- {}\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": []
+    }
+   ],
+   "style": "flow",
+   "text": "[{}]\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      []
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "a: []\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      []
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "a: []\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      []
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "a: []\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "a",
+      []
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{a: []}\n"
+  },
+  {
+   "value": [
+    1.0,
+    1e+16,
+    0.5,
+    1e-07,
+    -2.5,
+    {
+     "__float__": "inf"
+    },
+    {
+     "__float__": "-inf"
+    },
+    123456789.12345679,
+    1e+100,
+    0.0,
+    -0.0
+   ],
+   "style": "nice",
+   "text": "- 1.0\n- 1.0e+16\n- 0.5\n- 1.0e-07\n- -2.5\n- .inf\n- -.inf\n- 123456789.12345679\n- 1.0e+100\n- 0.0\n- -0.0\n"
+  },
+  {
+   "value": [
+    1.0,
+    1e+16,
+    0.5,
+    1e-07,
+    -2.5,
+    {
+     "__float__": "inf"
+    },
+    {
+     "__float__": "-inf"
+    },
+    123456789.12345679,
+    1e+100,
+    0.0,
+    -0.0
+   ],
+   "style": "block2",
+   "text": "- 1.0\n- 1.0e+16\n- 0.5\n- 1.0e-07\n- -2.5\n- .inf\n- -.inf\n- 123456789.12345679\n- 1.0e+100\n- 0.0\n- -0.0\n"
+  },
+  {
+   "value": [
+    1.0,
+    1e+16,
+    0.5,
+    1e-07,
+    -2.5,
+    {
+     "__float__": "inf"
+    },
+    {
+     "__float__": "-inf"
+    },
+    123456789.12345679,
+    1e+100,
+    0.0,
+    -0.0
+   ],
+   "style": "auto",
+   "text": "[1.0, 1.0e+16, 0.5, 1.0e-07, -2.5, .inf, -.inf, 123456789.12345679, 1.0e+100, 0.0,\n  -0.0]\n"
+  },
+  {
+   "value": [
+    1.0,
+    1e+16,
+    0.5,
+    1e-07,
+    -2.5,
+    {
+     "__float__": "inf"
+    },
+    {
+     "__float__": "-inf"
+    },
+    123456789.12345679,
+    1e+100,
+    0.0,
+    -0.0
+   ],
+   "style": "flow",
+   "text": "[1.0, 1.0e+16, 0.5, 1.0e-07, -2.5, .inf, -.inf, 123456789.12345679, 1.0e+100, 0.0, -0.0]\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      [
+       1,
+       "x, y"
+      ]
+     ],
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "k",
+         "v"
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "a:\n    k: v\nb:\n- 1\n- x, y\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      [
+       1,
+       "x, y"
+      ]
+     ],
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "k",
+         "v"
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "a:\n  k: v\nb:\n- 1\n- x, y\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      [
+       1,
+       "x, y"
+      ]
+     ],
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "k",
+         "v"
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "a: {k: v}\nb: [1, 'x, y']\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      [
+       1,
+       "x, y"
+      ]
+     ],
+     [
+      "a",
+      {
+       "__map__": [
+        [
+         "k",
+         "v"
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{a: {k: v}, b: [1, 'x, y']}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "emoji",
+      "🎤"
+     ],
+     [
+      "umlaut",
+      "ä"
+     ],
+     [
+      "tab",
+      "a\tb"
+     ],
+     [
+      "nbsp",
+      "a b"
+     ],
+     [
+      "ctrl",
+      "a\u0001b"
+     ],
+     [
+      "bs",
+      "a\\b"
+     ],
+     [
+      "dq",
+      "a\"b"
+     ],
+     [
+      "both",
+      "a'b\"c"
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "both: a'b\"c\nbs: a\\b\nctrl: \"a\\x01b\"\ndq: a\"b\nemoji: 🎤\nnbsp: a b\ntab: \"a\\tb\"\numlaut: ä\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "emoji",
+      "🎤"
+     ],
+     [
+      "umlaut",
+      "ä"
+     ],
+     [
+      "tab",
+      "a\tb"
+     ],
+     [
+      "nbsp",
+      "a b"
+     ],
+     [
+      "ctrl",
+      "a\u0001b"
+     ],
+     [
+      "bs",
+      "a\\b"
+     ],
+     [
+      "dq",
+      "a\"b"
+     ],
+     [
+      "both",
+      "a'b\"c"
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "both: a'b\"c\nbs: a\\b\nctrl: \"a\\x01b\"\ndq: a\"b\nemoji: 🎤\nnbsp: a b\ntab: \"a\\tb\"\numlaut: ä\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "emoji",
+      "🎤"
+     ],
+     [
+      "umlaut",
+      "ä"
+     ],
+     [
+      "tab",
+      "a\tb"
+     ],
+     [
+      "nbsp",
+      "a b"
+     ],
+     [
+      "ctrl",
+      "a\u0001b"
+     ],
+     [
+      "bs",
+      "a\\b"
+     ],
+     [
+      "dq",
+      "a\"b"
+     ],
+     [
+      "both",
+      "a'b\"c"
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{both: a'b\"c, bs: a\\b, ctrl: \"a\\x01b\", dq: a\"b, emoji: 🎤, nbsp: a b, tab: \"a\\tb\",\n  umlaut: ä}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "emoji",
+      "🎤"
+     ],
+     [
+      "umlaut",
+      "ä"
+     ],
+     [
+      "tab",
+      "a\tb"
+     ],
+     [
+      "nbsp",
+      "a b"
+     ],
+     [
+      "ctrl",
+      "a\u0001b"
+     ],
+     [
+      "bs",
+      "a\\b"
+     ],
+     [
+      "dq",
+      "a\"b"
+     ],
+     [
+      "both",
+      "a'b\"c"
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{both: a'b\"c, bs: a\\b, ctrl: \"a\\x01b\", dq: a\"b, emoji: \"\\U0001F3A4\", nbsp: \"a\\_b\", tab: \"a\\tb\", umlaut: \"\\xE4\"}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "multi",
+      "line1\nline2\n"
+     ],
+     [
+      "trail",
+      "x\n"
+     ],
+     [
+      "lead",
+      "\nx"
+     ],
+     [
+      "crlf",
+      "a\r\nb"
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "crlf: \"a\\r\\nb\"\nlead: '\n\n    x'\nmulti: 'line1\n\n    line2\n\n    '\ntrail: 'x\n\n    '\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "multi",
+      "line1\nline2\n"
+     ],
+     [
+      "trail",
+      "x\n"
+     ],
+     [
+      "lead",
+      "\nx"
+     ],
+     [
+      "crlf",
+      "a\r\nb"
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "crlf: \"a\\r\\nb\"\nlead: '\n\n  x'\nmulti: 'line1\n\n  line2\n\n  '\ntrail: 'x\n\n  '\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "multi",
+      "line1\nline2\n"
+     ],
+     [
+      "trail",
+      "x\n"
+     ],
+     [
+      "lead",
+      "\nx"
+     ],
+     [
+      "crlf",
+      "a\r\nb"
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{crlf: \"a\\r\\nb\", lead: '\n\n    x', multi: 'line1\n\n    line2\n\n    ', trail: 'x\n\n    '}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "multi",
+      "line1\nline2\n"
+     ],
+     [
+      "trail",
+      "x\n"
+     ],
+     [
+      "lead",
+      "\nx"
+     ],
+     [
+      "crlf",
+      "a\r\nb"
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{crlf: \"a\\r\\nb\", lead: '\n\n    x', multi: 'line1\n\n    line2\n\n    ', trail: 'x\n\n    '}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      1,
+      "a"
+     ],
+     [
+      2,
+      "b"
+     ],
+     [
+      10,
+      "c"
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "1: a\n2: b\n10: c\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      1,
+      "a"
+     ],
+     [
+      2,
+      "b"
+     ],
+     [
+      10,
+      "c"
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "1: a\n2: b\n10: c\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      1,
+      "a"
+     ],
+     [
+      2,
+      "b"
+     ],
+     [
+      10,
+      "c"
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{1: a, 2: b, 10: c}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      1,
+      "a"
+     ],
+     [
+      2,
+      "b"
+     ],
+     [
+      10,
+      "c"
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{1: a, 2: b, 10: c}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      1
+     ],
+     [
+      "a",
+      2
+     ],
+     [
+      "C",
+      3
+     ],
+     [
+      "_x",
+      4
+     ],
+     [
+      "1",
+      5
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "'1': 5\nC: 3\n_x: 4\na: 2\nb: 1\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      1
+     ],
+     [
+      "a",
+      2
+     ],
+     [
+      "C",
+      3
+     ],
+     [
+      "_x",
+      4
+     ],
+     [
+      "1",
+      5
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "'1': 5\nC: 3\n_x: 4\na: 2\nb: 1\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      1
+     ],
+     [
+      "a",
+      2
+     ],
+     [
+      "C",
+      3
+     ],
+     [
+      "_x",
+      4
+     ],
+     [
+      "1",
+      5
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{'1': 5, C: 3, _x: 4, a: 2, b: 1}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "b",
+      1
+     ],
+     [
+      "a",
+      2
+     ],
+     [
+      "C",
+      3
+     ],
+     [
+      "_x",
+      4
+     ],
+     [
+      "1",
+      5
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{'1': 5, C: 3, _x: 4, a: 2, b: 1}\n"
+  },
+  {
+   "value": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     [
+      4,
+      [
+       5
+      ]
+     ]
+    ]
+   ],
+   "style": "nice",
+   "text": "-   - 1\n    - 2\n-   - 3\n    -   - 4\n        -   - 5\n"
+  },
+  {
+   "value": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     [
+      4,
+      [
+       5
+      ]
+     ]
+    ]
+   ],
+   "style": "block2",
+   "text": "- - 1\n  - 2\n- - 3\n  - - 4\n    - - 5\n"
+  },
+  {
+   "value": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     [
+      4,
+      [
+       5
+      ]
+     ]
+    ]
+   ],
+   "style": "auto",
+   "text": "- [1, 2]\n- - 3\n  - - 4\n    - [5]\n"
+  },
+  {
+   "value": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     [
+      4,
+      [
+       5
+      ]
+     ]
+    ]
+   ],
+   "style": "flow",
+   "text": "[[1, 2], [3, [4, [5]]]]\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ],
+      [
+       "b",
+       2
+      ]
+     ]
+    },
+    {
+     "__map__": [
+      [
+       "c",
+       [
+        1,
+        {
+         "__map__": [
+          [
+           "d",
+           2
+          ]
+         ]
+        }
+       ]
+      ]
+     ]
+    }
+   ],
+   "style": "nice",
+   "text": "-   a: 1\n    b: 2\n-   c:\n    - 1\n    -   d: 2\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ],
+      [
+       "b",
+       2
+      ]
+     ]
+    },
+    {
+     "__map__": [
+      [
+       "c",
+       [
+        1,
+        {
+         "__map__": [
+          [
+           "d",
+           2
+          ]
+         ]
+        }
+       ]
+      ]
+     ]
+    }
+   ],
+   "style": "block2",
+   "text": "- a: 1\n  b: 2\n- c:\n  - 1\n  - d: 2\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ],
+      [
+       "b",
+       2
+      ]
+     ]
+    },
+    {
+     "__map__": [
+      [
+       "c",
+       [
+        1,
+        {
+         "__map__": [
+          [
+           "d",
+           2
+          ]
+         ]
+        }
+       ]
+      ]
+     ]
+    }
+   ],
+   "style": "auto",
+   "text": "- {a: 1, b: 2}\n- c:\n  - 1\n  - {d: 2}\n"
+  },
+  {
+   "value": [
+    {
+     "__map__": [
+      [
+       "a",
+       1
+      ],
+      [
+       "b",
+       2
+      ]
+     ]
+    },
+    {
+     "__map__": [
+      [
+       "c",
+       [
+        1,
+        {
+         "__map__": [
+          [
+           "d",
+           2
+          ]
+         ]
+        }
+       ]
+      ]
+     ]
+    }
+   ],
+   "style": "flow",
+   "text": "[{a: 1, b: 2}, {c: [1, {d: 2}]}]\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "long",
+      "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "long: 'word word word word word word word word word word word word word word word\n    word word word word word word word word word word word word word word word '\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "long",
+      "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "long: 'word word word word word word word word word word word word word word word\n  word word word word word word word word word word word word word word word '\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "long",
+      "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{long: 'word word word word word word word word word word word word word word word\n    word word word word word word word word word word word word word word word '}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "long",
+      "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{long: 'word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word '}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "nested",
+      {
+       "__map__": [
+        [
+         "deep",
+         {
+          "__map__": [
+           [
+            "deeper",
+            {
+             "__map__": [
+              [
+               "deepest",
+               [
+                1,
+                2,
+                {
+                 "__map__": [
+                  [
+                   "k",
+                   "v"
+                  ]
+                 ]
+                }
+               ]
+              ]
+             ]
+            }
+           ]
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "nested:\n    deep:\n        deeper:\n            deepest:\n            - 1\n            - 2\n            -   k: v\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "nested",
+      {
+       "__map__": [
+        [
+         "deep",
+         {
+          "__map__": [
+           [
+            "deeper",
+            {
+             "__map__": [
+              [
+               "deepest",
+               [
+                1,
+                2,
+                {
+                 "__map__": [
+                  [
+                   "k",
+                   "v"
+                  ]
+                 ]
+                }
+               ]
+              ]
+             ]
+            }
+           ]
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "nested:\n  deep:\n    deeper:\n      deepest:\n      - 1\n      - 2\n      - k: v\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "nested",
+      {
+       "__map__": [
+        [
+         "deep",
+         {
+          "__map__": [
+           [
+            "deeper",
+            {
+             "__map__": [
+              [
+               "deepest",
+               [
+                1,
+                2,
+                {
+                 "__map__": [
+                  [
+                   "k",
+                   "v"
+                  ]
+                 ]
+                }
+               ]
+              ]
+             ]
+            }
+           ]
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "nested:\n  deep:\n    deeper:\n      deepest:\n      - 1\n      - 2\n      - {k: v}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "nested",
+      {
+       "__map__": [
+        [
+         "deep",
+         {
+          "__map__": [
+           [
+            "deeper",
+            {
+             "__map__": [
+              [
+               "deepest",
+               [
+                1,
+                2,
+                {
+                 "__map__": [
+                  [
+                   "k",
+                   "v"
+                  ]
+                 ]
+                }
+               ]
+              ]
+             ]
+            }
+           ]
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{nested: {deep: {deeper: {deepest: [1, 2, {k: v}]}}}}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "key with space",
+      1
+     ],
+     [
+      "key:colon",
+      2
+     ],
+     [
+      "",
+      3
+     ],
+     [
+      "yes",
+      4
+     ],
+     [
+      "1",
+      5
+     ],
+     [
+      "- dash",
+      6
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "? ''\n: 3\n'- dash': 6\n'1': 5\nkey with space: 1\nkey:colon: 2\n'yes': 4\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "key with space",
+      1
+     ],
+     [
+      "key:colon",
+      2
+     ],
+     [
+      "",
+      3
+     ],
+     [
+      "yes",
+      4
+     ],
+     [
+      "1",
+      5
+     ],
+     [
+      "- dash",
+      6
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "? ''\n: 3\n'- dash': 6\n'1': 5\nkey with space: 1\nkey:colon: 2\n'yes': 4\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "key with space",
+      1
+     ],
+     [
+      "key:colon",
+      2
+     ],
+     [
+      "",
+      3
+     ],
+     [
+      "yes",
+      4
+     ],
+     [
+      "1",
+      5
+     ],
+     [
+      "- dash",
+      6
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{? '' : 3, '- dash': 6, '1': 5, key with space: 1, 'key:colon': 2, 'yes': 4}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "key with space",
+      1
+     ],
+     [
+      "key:colon",
+      2
+     ],
+     [
+      "",
+      3
+     ],
+     [
+      "yes",
+      4
+     ],
+     [
+      "1",
+      5
+     ],
+     [
+      "- dash",
+      6
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{? '' : 3, '- dash': 6, '1': 5, key with space: 1, 'key:colon': 2, 'yes': 4}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "date",
+      {
+       "__timestamp__": "2020-01-02"
+      }
+     ],
+     [
+      "dt",
+      {
+       "__timestamp__": "2020-01-02 03:04:05"
+      }
+     ]
+    ]
+   },
+   "style": "nice",
+   "text": "date: 2020-01-02\ndt: 2020-01-02 03:04:05\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "date",
+      {
+       "__timestamp__": "2020-01-02"
+      }
+     ],
+     [
+      "dt",
+      {
+       "__timestamp__": "2020-01-02 03:04:05"
+      }
+     ]
+    ]
+   },
+   "style": "block2",
+   "text": "date: 2020-01-02\ndt: 2020-01-02 03:04:05\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "date",
+      {
+       "__timestamp__": "2020-01-02"
+      }
+     ],
+     [
+      "dt",
+      {
+       "__timestamp__": "2020-01-02 03:04:05"
+      }
+     ]
+    ]
+   },
+   "style": "auto",
+   "text": "{date: 2020-01-02, dt: !!timestamp '2020-01-02 03:04:05'}\n"
+  },
+  {
+   "value": {
+    "__map__": [
+     [
+      "date",
+      {
+       "__timestamp__": "2020-01-02"
+      }
+     ],
+     [
+      "dt",
+      {
+       "__timestamp__": "2020-01-02 03:04:05"
+      }
+     ]
+    ]
+   },
+   "style": "flow",
+   "text": "{date: 2020-01-02, dt: !!timestamp '2020-01-02 03:04:05'}\n"
+  },
+  {
+   "value": [
+    "a b",
+    "a  b",
+    "a, b",
+    "[a]",
+    "{a}",
+    "a]b",
+    "a?b",
+    "a&b",
+    "a*b",
+    "a!b",
+    "a|b",
+    "a>b",
+    "a%b",
+    "a@b",
+    "a`b"
+   ],
+   "style": "nice",
+   "text": "- a b\n- a  b\n- a, b\n- '[a]'\n- '{a}'\n- a]b\n- a?b\n- a&b\n- a*b\n- a!b\n- a|b\n- a>b\n- a%b\n- a@b\n- a`b\n"
+  },
+  {
+   "value": [
+    "a b",
+    "a  b",
+    "a, b",
+    "[a]",
+    "{a}",
+    "a]b",
+    "a?b",
+    "a&b",
+    "a*b",
+    "a!b",
+    "a|b",
+    "a>b",
+    "a%b",
+    "a@b",
+    "a`b"
+   ],
+   "style": "block2",
+   "text": "- a b\n- a  b\n- a, b\n- '[a]'\n- '{a}'\n- a]b\n- a?b\n- a&b\n- a*b\n- a!b\n- a|b\n- a>b\n- a%b\n- a@b\n- a`b\n"
+  },
+  {
+   "value": [
+    "a b",
+    "a  b",
+    "a, b",
+    "[a]",
+    "{a}",
+    "a]b",
+    "a?b",
+    "a&b",
+    "a*b",
+    "a!b",
+    "a|b",
+    "a>b",
+    "a%b",
+    "a@b",
+    "a`b"
+   ],
+   "style": "auto",
+   "text": "[a b, a  b, 'a, b', '[a]', '{a}', 'a]b', 'a?b', a&b, a*b, a!b, a|b, a>b, a%b, a@b,\n  a`b]\n"
+  },
+  {
+   "value": [
+    "a b",
+    "a  b",
+    "a, b",
+    "[a]",
+    "{a}",
+    "a]b",
+    "a?b",
+    "a&b",
+    "a*b",
+    "a!b",
+    "a|b",
+    "a>b",
+    "a%b",
+    "a@b",
+    "a`b"
+   ],
+   "style": "flow",
+   "text": "[a b, a  b, 'a, b', '[a]', '{a}', 'a]b', 'a?b', a&b, a*b, a!b, a|b, a>b, a%b, a@b, a`b]\n"
+  }
+ ]
+}
