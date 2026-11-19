@@ -6,7 +6,6 @@ use common::{file_tree, read, worker, Tmp};
 use indoc::indoc;
 
 #[test]
-#[ignore = "pending"]
 fn test_empty_suffix() {
     let tmp = Tmp::new();
     let (root, dest) = tmp.src_dst();
@@ -40,7 +39,6 @@ fn test_empty_suffix() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_binary_file_fallback_to_copy() {
     let tmp = Tmp::new();
     let (root, dest) = tmp.src_dst();

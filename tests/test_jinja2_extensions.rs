@@ -30,7 +30,6 @@ use indoc::indoc;
 //         environment.globals.update(super_var="super var!")
 
 #[test]
-#[ignore = "pending"]
 fn test_default_jinja2_extensions() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -43,7 +42,7 @@ fn test_default_jinja2_extensions() {
 }
 
 #[test]
-#[ignore = "needs-design: Python Jinja extensions cannot be loaded"]
+#[ignore = "not applicable: Python Jinja extensions cannot be loaded"]
 fn test_additional_jinja2_extensions() {
     // TODO(port): the fixture's `_jinja_extensions` names the Python classes above.
     let tmp = Tmp::new();
@@ -58,7 +57,6 @@ fn test_additional_jinja2_extensions() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_additional_jinja2_extensions_error() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -81,7 +79,6 @@ fn test_additional_jinja2_extensions_error() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_to_json_filter_with_conf() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

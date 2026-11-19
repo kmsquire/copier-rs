@@ -5,6 +5,7 @@ mod common;
 use std::path::PathBuf;
 
 use common::{file_tree, run_cli, v, worker, Tmp, BRACKET_ENVOPS_JSON, SUFFIX_TMPL};
+use copier::tools::with_os;
 use indoc::{formatdoc, indoc};
 use rstest::rstest;
 use serde_json::json;
@@ -40,7 +41,6 @@ fn template_path(tmp: &Tmp) -> PathBuf {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_render_tasks() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -54,7 +54,6 @@ fn test_render_tasks() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_tasks() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -76,7 +75,6 @@ fn test_copy_tasks() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_task_with_blank_rendered_when_is_skipped() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -104,7 +102,6 @@ fn test_task_with_blank_rendered_when_is_skipped() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_skip_tasks() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -124,7 +121,6 @@ fn test_copy_skip_tasks() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_copy_cli_skip_tasks(#[values(false, true)] skip_tasks: bool) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -146,7 +142,6 @@ fn test_copy_cli_skip_tasks(#[values(false, true)] skip_tasks: bool) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_pretend_mode() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -170,8 +165,7 @@ fn test_pretend_mode() {
 #[case(Some("macos"), "macos.txt")]
 #[case(Some("windows"), "windows.txt")]
 #[case(None, "unsupported.txt")]
-#[ignore = "needs-design: operating system override"]
-fn test_os_specific_tasks(#[case] os: Option<&str>, #[case] filename: &str) {
+fn test_os_specific_tasks(#[case] os: Option<&'static str>, #[case] filename: &str) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
     let dst = tmp.mktemp("dst");
@@ -192,16 +186,11 @@ fn test_os_specific_tasks(#[case] os: Option<&str>, #[case] filename: &str) {
                 {% endif %}
         "},
     };
-    // TODO(port): the Python test patches `copier._main.OS` to simulate another OS;
-    // there is no OS override in the library yet.
-    // monkeypatch.setattr("copier._main.OS", os)
-    let _ = os;
-    worker(&src, &dst).unsafe_(true).run_copy().unwrap();
+    with_os(os, || worker(&src, &dst).unsafe_(true).run_copy()).unwrap();
     assert!(dst.join(filename).exists());
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copier_phase_variable() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");

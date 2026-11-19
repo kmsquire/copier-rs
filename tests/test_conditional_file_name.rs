@@ -11,7 +11,6 @@ use rstest::rstest;
 use serde_json::json;
 
 #[test]
-#[ignore = "pending"]
 fn test_render_conditional() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -26,7 +25,6 @@ fn test_render_conditional() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_dont_render_conditional() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -38,7 +36,6 @@ fn test_dont_render_conditional() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_render_conditional_subdir() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -53,7 +50,6 @@ fn test_render_conditional_subdir() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_dont_render_conditional_subdir() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -64,7 +60,6 @@ fn test_dont_render_conditional_subdir() {
     assert!(!dst.join("subdir").join("file.txt").exists());
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_answer_changes(#[values(false, true)] interactive: bool) {
     let tmp = Tmp::new();

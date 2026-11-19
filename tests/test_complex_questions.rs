@@ -117,7 +117,6 @@ fn check_invalid(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_api() {
     // Test copier correctly processes advanced questions and answers through API.
     let tmp = Tmp::new();
@@ -156,7 +155,6 @@ fn test_api() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_cli_interactive() {
     // Test copier correctly processes advanced questions and answers through CLI.
     let tmp = Tmp::new();
@@ -275,7 +273,7 @@ fn test_cli_interactive() {
             your_age: 22
             your_height: 1.56
             more_json_info: {"objective": "be a pirate"}
-            anything_else: ["Want some grog?", "I'd love it"]
+            anything_else: ["Want some grog?", "I\u0027d love it"]
             choose_list: "first"
             choose_tuple: "second"
             choose_dict: "third"
@@ -287,7 +285,6 @@ fn test_cli_interactive() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_api_str_data() {
     // Test copier when all data comes as a string.
     //
@@ -329,7 +326,6 @@ fn test_api_str_data() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_cli_interatively_with_flag_data_and_type_casts() {
     // Assert how choices work when copier is invoked with --data interactively.
     let tmp = Tmp::new();
@@ -413,7 +409,7 @@ fn test_cli_interatively_with_flag_data_and_type_casts() {
             your_age: 22
             your_height: 1.56
             more_json_info: {"objective": "be a pirate"}
-            anything_else: ["Want some grog?", "I'd love it"]
+            anything_else: ["Want some grog?", "I\u0027d love it"]
             choose_list: "second"
             choose_tuple: "third"
             choose_dict: "first"
@@ -427,7 +423,6 @@ fn test_cli_interatively_with_flag_data_and_type_casts() {
 #[rstest]
 #[case(true, "example2")]
 #[case(false, "example")]
-#[ignore = "pending"]
 fn test_tui_inherited_default(#[case] has_2_owners: bool, #[case] owner2: &str) {
     // Make sure a template inherits default as expected.
     let tmp = Tmp::new();
@@ -493,7 +488,6 @@ fn test_tui_inherited_default(#[case] has_2_owners: bool, #[case] owner2: &str) 
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_tui_typed_default() {
     // Make sure a template defaults are typed as expected.
     let tmp = Tmp::new();
@@ -532,7 +526,6 @@ fn test_tui_typed_default() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_selection_type_cast() {
     // Selection question with different types, properly casted.
     let tmp = Tmp::new();
@@ -605,7 +598,6 @@ fn test_selection_type_cast() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_multi_template_answers() {
     let tmp = Tmp::new();
     let (tpl1, tpl2, dst) = (tmp.mktemp("0"), tmp.mktemp("1"), tmp.mktemp("2"));
@@ -652,7 +644,6 @@ fn test_multi_template_answers() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_omit_answer_for_skipped_question() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -690,7 +681,6 @@ fn test_omit_answer_for_skipped_question() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_keep_answer_for_unask_question() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

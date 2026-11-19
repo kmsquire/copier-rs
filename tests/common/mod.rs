@@ -444,6 +444,7 @@ pub struct Tui {
     stdin: Option<ChildStdin>,
     output: Receiver<Vec<u8>>,
     buffer: Vec<u8>,
+    transcript: Vec<u8>,
     timeout: Duration,
 }
 
@@ -486,6 +487,7 @@ pub fn spawn_with(args: &[&str], timeout_secs: u64, cwd: Option<&Path>) -> Tui {
         stdin,
         output,
         buffer: Vec::new(),
+        transcript: Vec::new(),
         timeout: Duration::from_secs(timeout_secs),
     }
 }
@@ -503,7 +505,10 @@ impl Tui {
             }
             let remaining = deadline.saturating_duration_since(Instant::now());
             match self.output.recv_timeout(remaining) {
-                Ok(chunk) => self.buffer.extend(chunk),
+                Ok(chunk) => {
+                    self.transcript.extend(&chunk);
+                    self.buffer.extend(chunk);
+                }
                 Err(RecvTimeoutError::Timeout) => panic!(
                     "timed out waiting for {:?}; pending output: {:?}",
                     String::from_utf8_lossy(needle),
@@ -539,7 +544,10 @@ impl Tui {
         loop {
             let remaining = deadline.saturating_duration_since(Instant::now());
             match self.output.recv_timeout(remaining) {
-                Ok(chunk) => self.buffer.extend(chunk),
+                Ok(chunk) => {
+                    self.transcript.extend(&chunk);
+                    self.buffer.extend(chunk);
+                }
                 Err(RecvTimeoutError::Disconnected) => break,
                 Err(RecvTimeoutError::Timeout) => panic!(
                     "timed out waiting for EOF; pending output: {:?}",
@@ -548,6 +556,13 @@ impl Tui {
             }
         }
         String::from_utf8_lossy(&std::mem::take(&mut self.buffer)).into_owned()
+    }
+
+    /// Wait for the process to finish and return everything it printed during the
+    /// session (what pexpect's `logfile` collects).
+    pub fn finish(&mut self) -> String {
+        self.expect_eof();
+        String::from_utf8_lossy(&self.transcript).into_owned()
     }
 
     /// Close stdin, wait for exit and return the exit code.

@@ -13,7 +13,6 @@ use serde_json::json;
 
 /// Test a basic migration running on every version
 #[test]
-#[ignore = "pending"]
 fn test_basic_migration() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -50,7 +49,6 @@ fn test_basic_migration() {
 #[case(json!(["touch", "foo"]))]
 #[case(json!({"command": "touch foo"}))]
 #[case(json!({"command": ["touch", "foo"]}))]
-#[ignore = "pending"]
 fn test_post_migration_by_default(
     #[case] command: serde_json::Value,
     #[values(false, true)] bracket_envops: bool,
@@ -98,7 +96,6 @@ fn test_post_migration_by_default(
 
 /// Tests that migrations require the unsafe flag to be passed
 #[test]
-#[ignore = "pending"]
 fn test_requires_unsafe() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -133,7 +130,6 @@ fn test_requires_unsafe() {
 
 /// Test a migration running on a specific version
 #[test]
-#[ignore = "pending"]
 fn test_version_migration() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -175,7 +171,6 @@ fn test_version_migration() {
 
 /// Test if prerelease version migrations work
 #[test]
-#[ignore = "pending"]
 fn test_prerelease_version_migration() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -254,7 +249,6 @@ fn test_prerelease_version_migration() {
 
 /// Test the working directory attribute of migrations
 #[test]
-#[ignore = "pending"]
 fn test_migration_working_directory() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -291,7 +285,6 @@ fn test_migration_working_directory() {
 
 /// Test the `when` argument of migrations
 #[rstest]
-#[ignore = "pending"]
 fn test_migration_condition(#[values(true, false)] condition: bool) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -326,7 +319,6 @@ fn test_migration_condition(#[values(true, false)] condition: bool) {
 
 /// Test that migrations aren't run in pretend mode
 #[test]
-#[ignore = "pending"]
 fn test_pretend_migration() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -360,7 +352,6 @@ fn test_pretend_migration() {
 
 /// Test that migrations aren't run in pretend mode
 #[test]
-#[ignore = "pending"]
 fn test_skip_migration() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -394,7 +385,6 @@ fn test_skip_migration() {
 
 /// Test running migrations in the before upgrade step
 #[test]
-#[ignore = "pending"]
 fn test_migration_run_before() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -446,7 +436,6 @@ fn test_migration_run_before() {
 /// Test running migrations in the before upgrade step
 /// Also checks that this is the default behaviour if no `when` is given.
 #[rstest]
-#[ignore = "pending"]
 fn test_migration_run_after(#[values(true, false)] explicit: bool) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -485,7 +474,6 @@ fn test_migration_run_after(#[values(true, false)] explicit: bool) {
 
 /// Test that environment variables are passed to the migration commands
 #[rstest]
-#[ignore = "pending"]
 fn test_migration_env_variables(#[values(true, false)] with_version: bool) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -544,7 +532,6 @@ fn test_migration_env_variables(#[values(true, false)] with_version: bool) {
 
 /// Test that environment variables are passed to the migration commands
 #[rstest]
-#[ignore = "pending"]
 fn test_migration_jinja_variables(#[values(true, false)] with_version: bool) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -615,7 +602,6 @@ fn test_migration_jinja_variables(#[values(true, false)] with_version: bool) {
 
 /// Test that the Phase variable is properly set.
 #[test]
-#[ignore = "pending"]
 fn test_copier_phase_variable() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");

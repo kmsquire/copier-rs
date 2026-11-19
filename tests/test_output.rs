@@ -13,7 +13,6 @@ use rstest::rstest;
 use serde_json::json;
 
 #[test]
-#[ignore = "pending"]
 fn test_output() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -32,7 +31,6 @@ fn test_output() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_output_pretend() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -57,7 +55,6 @@ fn test_output_pretend() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_output_force() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -87,7 +84,6 @@ fn test_output_force() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_output_skip() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -116,7 +112,6 @@ fn test_output_skip() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_output_quiet() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -126,7 +121,6 @@ fn test_output_quiet() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_question_with_invalid_type() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -145,7 +139,6 @@ fn test_question_with_invalid_type() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_answer_with_invalid_type() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -164,7 +157,6 @@ fn test_answer_with_invalid_type() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_messages_with_inline_text(#[values(false, true)] interactive: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -205,8 +197,8 @@ fn test_messages_with_inline_text(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["copy", "-r", "v1", src_s, dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("myproj");
-        // The session logs to stderr, so its remaining output stands in for capsys stderr.
-        tui.expect_eof()
+        // The session's whole output stands in for capsys stderr, where pexpect logs it.
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             worker(&src, &dst)
@@ -233,7 +225,7 @@ fn test_messages_with_inline_text(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["recopy", "-r", "v1", dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("_new");
-        tui.expect_eof()
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             Worker::new()
@@ -267,7 +259,7 @@ fn test_messages_with_inline_text(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["update", dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("_update");
-        tui.expect_eof()
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             Worker::new()
@@ -292,7 +284,6 @@ fn test_messages_with_inline_text(#[values(false, true)] interactive: bool) {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_messages_with_included_text(#[values(false, true)] interactive: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -346,8 +337,8 @@ fn test_messages_with_included_text(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["copy", "-r", "v1", src_s, dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("myproj");
-        // The session logs to stderr, so its remaining output stands in for capsys stderr.
-        tui.expect_eof()
+        // The session's whole output stands in for capsys stderr, where pexpect logs it.
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             worker(&src, &dst)
@@ -374,7 +365,7 @@ fn test_messages_with_included_text(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["recopy", "-r", "v1", dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("_new");
-        tui.expect_eof()
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             Worker::new()
@@ -408,7 +399,7 @@ fn test_messages_with_included_text(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["update", dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("_update");
-        tui.expect_eof()
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             Worker::new()
@@ -433,7 +424,6 @@ fn test_messages_with_included_text(#[values(false, true)] interactive: bool) {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_messages_quiet(#[values(false, true)] interactive: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -474,8 +464,8 @@ fn test_messages_quiet(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["copy", "--quiet", "-r", "v1", src_s, dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("myproj");
-        // The session logs to stderr, so its remaining output stands in for capsys stderr.
-        tui.expect_eof()
+        // The session's whole output stands in for capsys stderr, where pexpect logs it.
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             worker(&src, &dst)
@@ -497,7 +487,7 @@ fn test_messages_quiet(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["recopy", "--quiet", "-r", "v1", dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("_new");
-        tui.expect_eof()
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             Worker::new()
@@ -526,7 +516,7 @@ fn test_messages_quiet(#[values(false, true)] interactive: bool) {
         let mut tui = spawn(&["update", "--quiet", dst_s]);
         expect_prompt(&mut tui, "project_name", "str", None);
         tui.sendline("_update");
-        tui.expect_eof()
+        tui.finish()
     } else {
         let (_, out) = capture(|| {
             Worker::new()

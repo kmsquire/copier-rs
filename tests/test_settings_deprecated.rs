@@ -6,6 +6,7 @@ mod common;
 
 use common::Tmp;
 use copier::errors::{capture_warnings, WarningKind};
+use copier::settings::with_locations;
 use copier::value::Mapping;
 use copier::{load_settings, Settings, Value};
 use rstest::rstest;
@@ -25,7 +26,6 @@ fn home() -> String {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_default_settings() {
     let settings = Settings::default();
 
@@ -34,21 +34,21 @@ fn test_default_settings() {
 }
 
 #[test]
-#[ignore = "needs-design: settings location override"]
 fn test_settings_from_default_location() {
-    // TODO(port): needs a way to point the default settings location at a temp file (`settings_path` fixture)
-    // settings_path.write_text("defaults:\n  foo: bar")
+    let tmp = Tmp::new();
+    let config = tmp.path().join("config");
+    std::fs::create_dir(&config).unwrap();
+    let settings_path = config.join("settings.yml");
+    std::fs::write(&settings_path, "defaults:\n  foo: bar").unwrap();
 
-    let settings = load_settings(None).unwrap();
+    let settings = with_locations(&settings_path, None, || load_settings(None)).unwrap();
 
     assert_eq!(settings.defaults, mapping(json!({"foo": "bar"})));
 }
 
 #[cfg(windows)]
 #[test]
-#[ignore = "needs-design: settings location override"]
 fn test_default_windows_settings_path() {
-    // TODO(port): default settings path is not overridable, so the expected value cannot be pinned in a test
     assert_eq!(
         copier::settings::default_settings_path(),
         std::path::PathBuf::from(std::env::var("USERPROFILE").unwrap_or_default())
@@ -60,56 +60,66 @@ fn test_default_windows_settings_path() {
 }
 
 #[test]
-#[ignore = "needs-design: settings location override"]
 fn test_settings_from_default_location_dont_exists() {
-    // TODO(port): needs a way to point the default settings location at an empty temp dir (`config_path` fixture)
-    let settings = load_settings(None).unwrap();
+    let tmp = Tmp::new();
+    let settings_path = tmp.path().join("config").join("settings.yml");
+
+    let settings = with_locations(&settings_path, None, || load_settings(None)).unwrap();
 
     assert!(settings.defaults.is_empty());
 }
 
 #[test]
-#[ignore = "needs-design: settings location override"]
 fn test_settings_from_env_location() {
-    // TODO(port): needs the default settings location override (`settings_path` fixture) and COPIER_SETTINGS_PATH
-    // settings_path.write_text("defaults:\n  foo: bar");
     let tmp = Tmp::new();
+    let config = tmp.path().join("config");
+    std::fs::create_dir(&config).unwrap();
+    let settings_path = config.join("settings.yml");
+    std::fs::write(&settings_path, "defaults:\n  foo: bar").unwrap();
+
     let settings_from_env_path = tmp.path().join("settings.yml");
     std::fs::write(&settings_from_env_path, "defaults:\n  foo: baz").unwrap();
 
-    // monkeypatch.setenv("COPIER_SETTINGS_PATH", settings_from_env_path)
-
-    let settings = load_settings(None).unwrap();
+    let settings = with_locations(&settings_path, Some(&settings_from_env_path), || {
+        load_settings(None)
+    })
+    .unwrap();
 
     assert_eq!(settings.defaults, mapping(json!({"foo": "baz"})));
 }
 
 #[test]
-#[ignore = "needs-design: settings location override"]
 fn test_settings_from_param() {
-    // TODO(port): needs COPIER_SETTINGS_PATH and the default settings location override to show the param wins
-    // settings_path.write_text("defaults:\n  foo: bar");
     let tmp = Tmp::new();
+    let config = tmp.path().join("config");
+    std::fs::create_dir(&config).unwrap();
+    let settings_path = config.join("settings.yml");
+    std::fs::write(&settings_path, "defaults:\n  foo: bar").unwrap();
+
     let settings_from_env_path = tmp.path().join("settings.yml");
     std::fs::write(&settings_from_env_path, "defaults:\n  foo: baz").unwrap();
-
-    // monkeypatch.setenv("COPIER_SETTINGS_PATH", settings_from_env_path)
 
     let file_path = tmp.path().join("file.yml");
     std::fs::write(&file_path, "defaults:\n  from: file").unwrap();
 
-    let settings = load_settings(Some(&file_path)).unwrap();
+    let settings = with_locations(&settings_path, Some(&settings_from_env_path), || {
+        load_settings(Some(&file_path))
+    })
+    .unwrap();
 
     assert_eq!(settings.defaults, mapping(json!({"from": "file"})));
 }
 
 #[test]
-#[ignore = "needs-design: settings location override"]
 fn test_settings_defined_but_missing() {
-    // TODO(port): needs COPIER_SETTINGS_PATH pointing at a missing file (`settings_path` fixture)
-    // monkeypatch.setenv("COPIER_SETTINGS_PATH", settings_path)
+    let tmp = Tmp::new();
+    let config = tmp.path().join("config");
+    std::fs::create_dir(&config).unwrap();
+    let settings_path = config.join("settings.yml");
 
-    let (_, warnings) = capture_warnings(|| load_settings(None));
+    let (_, warnings) = with_locations(&settings_path, Some(&settings_path), || {
+        capture_warnings(|| load_settings(None))
+    });
 
     assert!(warnings
         .iter()
@@ -117,7 +127,6 @@ fn test_settings_defined_but_missing() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_settings_from_utf_file(
     #[values("utf-8", "utf-8-sig", "utf-16-le", "utf-16-be")] encoding: &str,
 ) {
@@ -191,7 +200,6 @@ fn test_settings_from_utf_file(
 #[case(format!("{}/path/to/template", home()), vec!["~/path/to/template".to_owned()], true)]
 #[case(format!("{}/path/to/template", home()), vec!["~/path/to/".to_owned()], true)]
 #[case(format!("{}/path/to/template", home()), vec!["~/path/to".to_owned()], false)]
-#[ignore = "pending"]
 fn test_is_trusted(
     #[case] repository: String,
     #[case] trust: Vec<String>,

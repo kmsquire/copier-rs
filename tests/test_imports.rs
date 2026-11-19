@@ -13,7 +13,6 @@ use serde_json::json;
 #[rstest]
 #[case("", json!({"_exclude": ["includes"]}))]
 #[case("template", json!({"_subdirectory": "template"}))]
-#[ignore = "pending"]
 fn test_include(#[case] subdir: &str, #[case] settings: serde_json::Value) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -44,7 +43,6 @@ fn test_include(#[case] subdir: &str, #[case] settings: serde_json::Value) {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_include_resolves_symlink_outside_template_root_raises_error(
     #[values(false, true)] absolute: bool,
 ) {
@@ -72,7 +70,6 @@ fn test_include_resolves_symlink_outside_template_root_raises_error(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_include_resolves_symlink_inside_template() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -89,7 +86,6 @@ fn test_include_resolves_symlink_inside_template() {
 #[rstest]
 #[case("", json!({"_exclude": ["includes"]}))]
 #[case("template", json!({"_subdirectory": "template"}))]
-#[ignore = "pending"]
 fn test_import_macro(#[case] subdir: &str, #[case] settings: serde_json::Value) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

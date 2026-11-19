@@ -46,7 +46,6 @@ fn template_path_with_dot_config(tmp: &Tmp, config_folder: &str) -> PathBuf {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_good_cli_run() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -89,7 +88,6 @@ fn test_good_cli_run() {
 #[case("json", "true", json!(true))]
 #[case("json", "null", json!(null))]
 #[case("json", r#"["string", 1, 1.2, true, null]"#, json!(["string", 1, 1.2, true, null]))]
-#[ignore = "pending"]
 fn test_cli_data_parsed_by_question_type(
     #[case] type_: &str,
     #[case] answer: &str,
@@ -114,7 +112,6 @@ fn test_cli_data_parsed_by_question_type(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_data_file_parsed_by_question_type() {
     let tmp = Tmp::new();
     let (src, dst, local) = (tmp.mktemp("src"), tmp.mktemp("dst"), tmp.mktemp("local"));
@@ -140,7 +137,6 @@ fn test_data_file_parsed_by_question_type() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_data_cli_takes_precedence_over_data_file() {
     let tmp = Tmp::new();
     let (src, dst, local) = (tmp.mktemp("src"), tmp.mktemp("dst"), tmp.mktemp("local"));
@@ -201,7 +197,6 @@ fn encode_data(encoding: &str, data: &str) -> Vec<u8> {
 #[case("utf-8-sig")]
 #[case("utf-16-le")]
 #[case("utf-16-be")]
-#[ignore = "needs-design: monkeypatches io.text_encoding, which has no Rust equivalent"]
 fn test_read_utf_data_file(#[case] data_file_encoding: &str) {
     let tmp = Tmp::new();
     let (src, dst, local) = (tmp.mktemp("src"), tmp.mktemp("dst"), tmp.mktemp("local"));
@@ -229,11 +224,8 @@ fn test_read_utf_data_file(#[case] data_file_encoding: &str) {
     };
 
     // Override the factor that determine the default encoding when opening files.
-    // data.yml should be read correctly regardless of this value.
-    // TODO(port): `monkeypatch.context()` setting `io.text_encoding` to "cp932" has no
-    // Rust equivalent; the override is omitted and the call below runs unchanged.
-    // with monkeypatch.context() as m:
-    //     m.setattr("io.text_encoding", lambda *_args: "cp932")
+    // data.yml should be read correctly regardless of this value. Rust has no default
+    // text encoding, so the `io.text_encoding` override is dropped.
     let data_file_arg = format!("--data-file={}", local.join("data.yml").display());
     let (retcode, _) = run_cli(&["copy", &data_file_arg, src_s, dst_s]);
 
@@ -255,7 +247,6 @@ fn test_read_utf_data_file(#[case] data_file_encoding: &str) {
 #[case(".config/")]
 #[case(".config/subconfig/")]
 #[case(".config/subconfig/deep_nested_config/")]
-#[ignore = "pending"]
 fn test_good_cli_run_dot_config(#[case] config_folder: &str) {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -316,7 +307,6 @@ fn git_commands(dir: &Path) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_help() {
     let output = copier_cmd().args(["--help-all"]).output().unwrap();
     let _help = String::from_utf8_lossy(&output.stdout);
@@ -325,10 +315,7 @@ fn test_help() {
 }
 
 #[test]
-#[ignore = "needs-design: help output is rendered at a fixed width of 80"]
 fn test_copy_help() {
-    // TODO(port): `patch("plumbum.cli.application.get_terminal_size", return_value=(80, 1))`
-    // has no Rust equivalent; the help width is fixed at 80 columns, so the patch is dropped.
     let (status, out) = run_cli(&["copy", "--help"]);
     assert_eq!(status, 0);
     let (header, body) = out.stdout.split_once('\n').unwrap();
@@ -393,10 +380,7 @@ fn test_copy_help() {
 }
 
 #[test]
-#[ignore = "needs-design: help output is rendered at a fixed width of 80"]
 fn test_update_help() {
-    // TODO(port): `patch("plumbum.cli.application.get_terminal_size", return_value=(80, 1))`
-    // has no Rust equivalent; the help width is fixed at 80 columns, so the patch is dropped.
     let (status, out) = run_cli(&["update", "--help"]);
     assert_eq!(status, 0);
     let (header, body) = out.stdout.split_once('\n').unwrap();
@@ -472,10 +456,7 @@ fn test_update_help() {
 }
 
 #[test]
-#[ignore = "needs-design: help output is rendered at a fixed width of 80"]
 fn test_check_update_help() {
-    // TODO(port): `patch("plumbum.cli.application.get_terminal_size", return_value=(80, 1))`
-    // has no Rust equivalent; the help width is fixed at 80 columns, so the patch is dropped.
     let (status, out) = run_cli(&["check-update", "--help"]);
     assert_eq!(status, 0);
     let (header, body) = out.stdout.split_once('\n').unwrap();
@@ -519,14 +500,12 @@ fn test_check_update_help() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_python_run() {
     let output = copier_cmd().args(["--help-all"]).output().unwrap();
     assert_eq!(output.status.code(), Some(0));
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skip_filenotexists() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -552,7 +531,6 @@ fn test_skip_filenotexists() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skip_fileexists() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -579,7 +557,6 @@ fn test_skip_fileexists() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_data_with_multiselect_choice_question() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

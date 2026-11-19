@@ -1,7 +1,12 @@
 //! Interactive prompting. The terminal UI lives behind [`Prompter`] so the engine
 //! can be driven by scripted answers.
 
+mod keys;
+mod terminal;
+
 use std::fmt;
+
+pub use terminal::TerminalPrompter;
 
 use crate::questions::{DefaultRendered, PromptKind};
 use crate::value::Value;
@@ -109,7 +114,7 @@ impl Prompter for NoPrompter {
     }
 }
 
-/// The prompter the CLI uses.
-pub fn terminal() -> NoPrompter {
-    NoPrompter
+/// The prompter the CLI uses: interactive prompts on stdin and stdout.
+pub fn terminal() -> TerminalPrompter {
+    TerminalPrompter::new()
 }

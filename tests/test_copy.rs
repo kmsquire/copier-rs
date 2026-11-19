@@ -10,6 +10,7 @@ use common::{
     git_save_with, project_template, read, symlink, v, worker, Tmp, BRACKET_ENVOPS_JSON,
 };
 use copier::errors::{capture_warnings, WarningKind};
+use copier::vcs::without_git;
 use copier::{CopierError, Worker};
 use indoc::{formatdoc, indoc};
 use rstest::rstest;
@@ -74,7 +75,6 @@ fn mtime(path: impl AsRef<Path>) -> std::time::SystemTime {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_project_not_found() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -89,7 +89,6 @@ fn test_project_not_found() {
 
 /// Generating a minimal project must work even if `git` is not installed.
 #[test]
-#[ignore = "needs-design: cannot make `git` look missing (monkeypatches `LocalMachine.which`)"]
 fn test_copy_without_git() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -98,27 +97,11 @@ fn test_copy_without_git() {
         src.join("copier.yml") => "name: world",
     };
 
-    // TODO(port): patch `LocalMachine.which` so that `git` is not found:
-    //
-    // original_which = local.which
-    //
-    // def fake_which(_cls, progname):
-    //     if Path(progname).name in {"git", "git.exe"}:
-    //         raise CommandNotFound(progname, [])
-    //     return original_which(progname)
-    //
-    // monkeypatch.setattr(LocalMachine, "which", fake_which)
-    //
-    // Sanity-check: the patch makes plumbum behave as if `git` is missing.
-    // with pytest.raises(CommandNotFound):
-    //     local["git"]
-
-    worker(&src, &dst).defaults(true).run_copy().unwrap();
+    without_git(|| worker(&src, &dst).defaults(true).run_copy()).unwrap();
     assert_eq!(read(dst.join("hello").join("world.txt")), "Hello, world!");
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_with_non_version_tags() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -153,7 +136,6 @@ fn test_copy_with_non_version_tags() {
 #[case("1.2.4.dev1", true, "2")]
 #[case("1.2.3.post1", false, "2")]
 #[case("1.2.4.dev1", false, "1")]
-#[ignore = "pending"]
 fn test_tag_autodetect_v_prefix_optional(
     #[case] tag2: &str,
     #[case] use_prereleases: bool,
@@ -186,7 +168,6 @@ fn test_tag_autodetect_v_prefix_optional(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_with_non_version_tags_and_vcs_ref() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -216,7 +197,6 @@ fn test_copy_with_non_version_tags_and_vcs_ref() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_with_vcs_ref_branch() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -231,7 +211,6 @@ fn test_copy_with_vcs_ref_branch() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -291,7 +270,6 @@ fn test_copy_repo() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_default_exclude() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -300,7 +278,6 @@ fn test_default_exclude() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_include_file() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -309,7 +286,6 @@ fn test_include_file() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_include_pattern() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -343,7 +319,6 @@ fn test_exclude_file() {
 
 /// Exclude argument extends the original exclusions instead of replacing them.
 #[test]
-#[ignore = "pending"]
 fn test_exclude_extends() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -364,7 +339,6 @@ fn test_exclude_extends() {
 
 /// Exclude in copier.yml replaces default values.
 #[test]
-#[ignore = "pending"]
 fn test_exclude_replaces() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -384,7 +358,6 @@ fn test_exclude_replaces() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skip_if_exists() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -402,7 +375,6 @@ fn test_skip_if_exists() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_timestamp_identical() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -416,7 +388,6 @@ fn test_timestamp_identical() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skip_if_exists_rendered_patterns() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -434,7 +405,6 @@ fn test_skip_if_exists_rendered_patterns() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skip_option() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -447,7 +417,6 @@ fn test_skip_option() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_force_option() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -464,7 +433,6 @@ fn test_force_option() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_pretend_option() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -475,7 +443,6 @@ fn test_pretend_option() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_empty_dir(#[values(true, false)] generate: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -525,7 +492,6 @@ fn test_empty_dir(#[values(true, false)] generate: bool) {
 #[case(0o770)]
 #[case(0o707)]
 #[case(0o777)]
-#[ignore = "pending"]
 fn test_preserved_permissions(#[case] permissions: u32) {
     use std::os::unix::fs::PermissionsExt;
 
@@ -547,7 +513,6 @@ fn test_preserved_permissions(#[case] permissions: u32) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_commit_hash() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -566,7 +531,6 @@ fn test_commit_hash() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_value_with_forward_slash() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -880,7 +844,6 @@ fn test_value_with_forward_slash() {
     json!("one"),
     Expect::Value("Invalid choice for 'q': no longer available")
 )]
-#[ignore = "pending"]
 fn test_validate_init_data(
     #[case] spec: serde_json::Value,
     #[case] value: serde_json::Value,
@@ -903,7 +866,6 @@ fn test_validate_init_data(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_validate_init_data_with_skipped_question(#[values(false, true)] defaults: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -943,7 +905,6 @@ fn test_validate_init_data_with_skipped_question(#[values(false, true)] defaults
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_required_question_without_data(
     #[values("str", "int", "float", "bool", "json", "yaml")] type_name: &str,
 ) {
@@ -965,7 +926,6 @@ fn test_required_question_without_data(
 #[case("float", json!([1.0, 2.0, 3.0]))]
 #[case("json", json!(["[1]", "[2]", "[3]"]))]
 #[case("yaml", json!(["- 1", "- 2", "- 3"]))]
-#[ignore = "pending"]
 fn test_required_choice_question_without_data(
     #[case] type_name: &str,
     #[case] choices: serde_json::Value,
@@ -1062,7 +1022,6 @@ fn test_required_choice_question_without_data(
 #[case(json!({"type": "yaml", "default": []}), Expect::Pass)]
 #[case(json!({"type": "yaml", "default": "null"}), Expect::Pass)]
 #[case(json!({"type": "yaml", "default": null}), Expect::Pass)]
-#[ignore = "pending"]
 fn test_validate_default_value(#[case] spec: serde_json::Value, #[case] expected: Expect) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1073,7 +1032,6 @@ fn test_validate_default_value(#[case] spec: serde_json::Value, #[case] expected
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_multiselect_choices_preserve_order() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1144,7 +1102,6 @@ fn test_multiselect_choices_preserve_order() {
             validator: "{% raw %}{% if false %}Validation error{% endif %}{% endraw %}"
         {%- endfor %}
 "#})]
-#[ignore = "pending"]
 fn test_templated_choices(#[case] spec: &str) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1300,7 +1257,6 @@ fn test_templated_choices(#[case] spec: &str) {
     "#},
     json!([{"value": "[1]"}, {"value": "[3]"}])
 )]
-#[ignore = "pending"]
 fn test_multiselect_choices_with_templated_default_value(
     #[case] spec: &str,
     #[case] expected: serde_json::Value,
@@ -1316,7 +1272,6 @@ fn test_multiselect_choices_with_templated_default_value(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copier_phase_variable() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1327,7 +1282,6 @@ fn test_copier_phase_variable() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_invalid_jinja_in_rendered_path_reports_template_path() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1342,7 +1296,6 @@ fn test_invalid_jinja_in_rendered_path_reports_template_path() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_invalid_jinja_in_nested_rendered_path_reports_failing_path_part() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1360,7 +1313,6 @@ fn test_invalid_jinja_in_nested_rendered_path_reports_failing_path_part() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_relative_render_path_outside_destination_raises_error() {
     let tmp = Tmp::new();
     let root = tmp.mktemp("root");
@@ -1388,7 +1340,6 @@ fn test_relative_render_path_outside_destination_raises_error() {
 // @pytest.mark.skipif(os.name != "posix", reason="Applies only to POSIX")
 #[cfg(unix)]
 #[test]
-#[ignore = "pending"]
 fn test_absolute_render_path_outside_destination_raises_error_on_posix() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1466,7 +1417,6 @@ fn test_absolute_render_path_outside_destination_raises_error_on_windows() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skipped_question_with_unset_default_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1490,7 +1440,7 @@ fn test_skipped_question_with_unset_default_value() {
 /// case, Copier should not fail but suppress the error and raise a warning.
 #[cfg(unix)]
 #[test]
-#[ignore = "needs-design: cannot make `chmod` fail (patches `Path.chmod`)"]
+#[ignore = "not applicable: cannot inject a chmod failure"]
 fn test_warn_if_chmod_raises_permission_error() {
     use std::os::unix::fs::PermissionsExt;
 
@@ -1539,7 +1489,6 @@ fn test_warn_if_chmod_raises_permission_error() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_copy_with_relative_path_to_local_git_template_through_multiple_parents(
     #[values(1, 2, 3)] depth: usize,
 ) {
@@ -1577,7 +1526,6 @@ fn test_copy_with_relative_path_to_local_git_template_through_multiple_parents(
 
 /// Test that a malicious Git URL does not execute shell commands.
 #[test]
-#[ignore = "pending"]
 fn test_git_argument_injection_via_url() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

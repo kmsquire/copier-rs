@@ -125,7 +125,6 @@ fn parse_utc_seconds(text: &str) -> Option<i64> {
     json!("value 2"),
     json!(["copier", "copier"]),
 )]
-#[ignore = "pending"]
 fn test_templated_prompt(
     #[case] questions_data: serde_json::Value,
     #[case] expected_value: serde_json::Value,
@@ -165,7 +164,6 @@ fn test_templated_prompt(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_templated_prompt_custom_envops() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -206,7 +204,6 @@ fn test_templated_prompt_custom_envops() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_templated_prompt_builtins() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -249,7 +246,6 @@ fn test_templated_prompt_builtins() {
 #[case(json!({"question": {"help": "{{ not_valid }}"}}), false, "None")]
 #[case(json!({"question": {"type": "{{ not_valid }}"}}), true, "None")]
 #[case(json!({"question": {"choices": ["{{ not_valid }}"]}}), false, "None")]
-#[ignore = "pending"]
 fn test_templated_prompt_invalid(
     #[case] questions: serde_json::Value,
     #[case] raises: bool,
@@ -309,7 +305,6 @@ fn test_templated_prompt_invalid(
         "Deployment Manager",
     ],
 )]
-#[ignore = "pending"]
 fn test_templated_prompt_with_conditional_choices(
     #[case] cloud: &str,
     #[case] iac_choices: Vec<&str>,
@@ -357,7 +352,6 @@ fn test_templated_prompt_with_conditional_choices(
 #[case("AWS", vec!["Terraform", "Cloud Formation"])]
 #[case("Azure", vec!["Terraform", "Azure Resource Manager"])]
 #[case("GCP", vec!["Terraform", "Deployment Manager"])]
-#[ignore = "pending"]
 fn test_templated_prompt_with_templated_choices(
     #[case] cloud: &str,
     #[case] iac_choices: Vec<&str>,
@@ -401,7 +395,6 @@ fn test_templated_prompt_with_templated_choices(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_templated_prompt_update_previous_answer_disabled() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -485,7 +478,6 @@ fn test_templated_prompt_update_previous_answer_disabled() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_multiselect_choices_with_templated_default_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -546,7 +538,6 @@ fn test_multiselect_choices_with_templated_default_value() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copier_phase_variable() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -564,7 +555,6 @@ fn test_copier_phase_variable() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copier_conf_variable() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

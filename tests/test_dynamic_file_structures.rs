@@ -37,7 +37,6 @@ fn name_of(path: &Path) -> String {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_folder_loop() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -77,7 +76,6 @@ fn test_folder_loop() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_folder_loop_reports_path_when_yielded_part_rendering_fails() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -107,7 +105,6 @@ fn test_folder_loop_reports_path_when_yielded_part_rendering_fails() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_nested_folder_loop() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -163,7 +160,6 @@ fn test_nested_folder_loop() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_file_loop() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -205,7 +201,6 @@ fn test_file_loop() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_folder_loop_dict_items() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -277,7 +272,6 @@ fn test_folder_loop_dict_items() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_raise_yield_tag_in_file() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -300,7 +294,6 @@ fn test_raise_yield_tag_in_file() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_raise_multiple_yield_tags() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

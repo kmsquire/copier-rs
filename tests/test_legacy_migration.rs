@@ -46,7 +46,6 @@ fn has_entry_ending_with(dir: &Path, suffix: &str) -> bool {
 // FIXME Some generous Windows power user please fix this test!
 // @pytest.mark.xfail(condition=platform.system() == "Windows", reason="Windows ignores shebang?", strict=True)
 #[rstest]
-#[ignore = "pending"]
 fn test_migrations_and_tasks(#[values(true, false)] skip_tasks: bool) {
     // Convert demo_migrations in a git repository with 2 versions
     let tmp = Tmp::new();
@@ -127,7 +126,6 @@ fn test_migrations_and_tasks(#[values(true, false)] skip_tasks: bool) {
 
 /// Test support for answers modifications in pre-migrations.
 #[test]
-#[ignore = "pending"]
 fn test_pre_migration_modifies_answers() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -207,7 +205,6 @@ fn test_pre_migration_modifies_answers() {
 
 /// Test prereleases support for copying and updating.
 #[test]
-#[ignore = "pending"]
 fn test_prereleases() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -316,7 +313,6 @@ fn test_prereleases() {
 
 /// Test pretend mode for legacy migrations.
 #[test]
-#[ignore = "pending"]
 fn test_pretend_mode() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");

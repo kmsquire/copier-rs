@@ -41,7 +41,6 @@ fn template_path(tmp: &Tmp) -> PathBuf {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_without_updated_template_no_opts() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -63,7 +62,6 @@ fn test_without_updated_template_no_opts() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_without_updated_template_json_output_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -87,7 +85,6 @@ fn test_without_updated_template_json_output_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_without_updated_template_quiet_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -109,7 +106,6 @@ fn test_without_updated_template_quiet_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_updated_template_no_opts() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -133,7 +129,6 @@ fn test_with_updated_template_no_opts() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_updated_template_json_output_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -157,7 +152,6 @@ fn test_with_updated_template_json_output_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_updated_template_quiet_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -179,7 +173,6 @@ fn test_with_updated_template_quiet_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_prerelease_template_no_opts() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -201,7 +194,6 @@ fn test_with_prerelease_template_no_opts() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_prerelease_template_json_output_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -225,7 +217,6 @@ fn test_with_prerelease_template_json_output_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_prerelease_template_quiet_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -247,7 +238,6 @@ fn test_with_prerelease_template_quiet_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_prerelease_template_prereleases_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -271,7 +261,6 @@ fn test_with_prerelease_template_prereleases_opt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_prerelease_template_prereleases_and_json_output_opts() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -301,7 +290,6 @@ fn test_with_prerelease_template_prereleases_and_json_output_opts() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_prerelease_template_prereleases_and_quiet_opts() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);
@@ -323,7 +311,6 @@ fn test_with_prerelease_template_prereleases_and_quiet_opts() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_with_custom_answers_file_path_opt() {
     let tmp = Tmp::new();
     let src = template_path(&tmp);

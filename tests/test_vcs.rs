@@ -11,7 +11,7 @@ use common::{
 use copier::errors::{capture_warnings, WarningKind};
 use copier::vcs::{
     clone, get_git_version, get_latest_tag, get_mirror_path, get_repo, is_git_repo_root, is_remote,
-    parse_git_version,
+    parse_git_version, with_git_env,
 };
 use copier::{CopierError, Value};
 use rstest::rstest;
@@ -19,6 +19,14 @@ use rstest::rstest;
 /// Local `file://` URL for `path`, which `clone()` treats as remote (`as_uri()` in Python).
 fn file_uri(path: &Path) -> String {
     format!("file://{}", path.display())
+}
+
+/// Write a git config (the `gitconfig` fixture's defaults plus `extra`) and return its path.
+fn write_gitconfig(tmp: &Tmp, extra: &str) -> PathBuf {
+    let path = tmp.path().join("gitconfig");
+    let base = std::fs::read_to_string(common::fixtures().join("gitconfig")).unwrap();
+    std::fs::write(&path, format!("{base}\n{extra}")).unwrap();
+    path
 }
 
 /// A small local git repo with one tagged commit (the `remote_repo` fixture).
@@ -30,7 +38,6 @@ fn remote_repo(tmp: &Tmp) -> String {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_get_repo() {
     let get = get_repo;
 
@@ -121,7 +128,6 @@ fn test_local_clone() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_is_remote() {
     assert!(is_remote("https://github.com/copier-org/copier.git"));
     assert!(is_remote("git@github.com:copier-org/copier.git"));
@@ -136,7 +142,6 @@ fn test_is_remote() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_mirror_path_ignores_credentials() {
     // Embedded credentials must not affect the cache key, so the same repo
     // accessed with or without a token maps to a single mirror.
@@ -146,7 +151,6 @@ fn test_mirror_path_ignores_credentials() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_remote_clone_creates_and_reuses_mirror() {
     let tmp = Tmp::new();
     let remote = remote_repo(&tmp);
@@ -171,7 +175,6 @@ fn test_remote_clone_creates_and_reuses_mirror() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_remote_clone_checks_out_ref() {
     let tmp = Tmp::new();
     let remote = remote_repo(&tmp);
@@ -183,7 +186,6 @@ fn test_remote_clone_checks_out_ref() {
 #[case("v1.0.0")]
 #[case("HEAD")]
 #[case("branch")]
-#[ignore = "pending"]
 fn test_local_clone_checks_out_ref(#[case] git_ref: &str) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -220,7 +222,6 @@ fn test_local_clone_checks_out_ref(#[case] git_ref: &str) {
 #[case("--")]
 #[case("HEAD\n--orphan=pwned")]
 #[case("missing")]
-#[ignore = "pending"]
 fn test_local_clone_rejects_invalid_ref(#[case] git_ref: &str) {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -240,7 +241,6 @@ fn test_local_clone_rejects_invalid_ref(#[case] git_ref: &str) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_remote_clone_prunes_stale_worktree() {
     let tmp = Tmp::new();
     let remote = remote_repo(&tmp);
@@ -263,7 +263,6 @@ fn test_remote_clone_prunes_stale_worktree() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_remote_clone_recovers_from_corrupt_mirror() {
     let tmp = Tmp::new();
     let remote = remote_repo(&tmp);
@@ -292,19 +291,15 @@ fn test_remote_clone_recovers_from_corrupt_mirror() {
 }
 
 #[test]
-#[ignore = "needs-design: gitconfig fixture needed to allow file protocol for submodules"]
 fn test_remote_clone_submodule_with_moved_url() {
-    // TODO(port): the `gitconfig` fixture is needed to set
-    // `protocol "file".allow = always` (git >= 2.38.1 blocks local submodules).
-    // gitconfig.set({'protocol "file"': {"allow": "always"}})
-    //
-    // Submodules are resolved from each checkout's own ``.gitmodules``.
+    // Submodules are resolved from each checkout's own `.gitmodules`.
     //
     // A previous worktree's `git submodule update --init` registers the
     // submodule URL in the mirror's shared config, so a submodule that moved
     // between template revisions would be fetched from the stale URL, failing
     // when the pinned commit no longer exists there.
     let tmp = Tmp::new();
+    let gitconfig = write_gitconfig(&tmp, "[protocol \"file\"]\n\tallow = always\n");
     // The submodule, initially hosted in one place...
     let sub1 = tmp.mktemp("sub1");
     git(&sub1, &["init"]);
@@ -327,7 +322,17 @@ fn test_remote_clone_submodule_with_moved_url() {
     git(&template, &["commit", "-m", "init"]);
     let sub1_str = sub1.to_str().unwrap();
     let sub2_str = sub2.to_str().unwrap();
-    git(&template, &["submodule", "add", sub1_str, "sub"]);
+    git(
+        &template,
+        &[
+            "-c",
+            "protocol.file.allow=always",
+            "submodule",
+            "add",
+            sub1_str,
+            "sub",
+        ],
+    );
     git(
         &template,
         &["commit", "-m", "add submodule at its original location"],
@@ -351,23 +356,27 @@ fn test_remote_clone_submodule_with_moved_url() {
     let template_uri = file_uri(&template);
     // Checking out the first revision registers the original submodule URL
     // in the mirror's shared config.
-    let dst1 = clone(&template_uri, Some("v1"), Some(&clones.join("first"))).unwrap();
+    let env = [("GIT_CONFIG_GLOBAL", gitconfig.as_os_str())];
+    let dst1 = with_git_env(&env, || {
+        clone(&template_uri, Some("v1"), Some(&clones.join("first")))
+    })
+    .unwrap();
     assert_eq!(read(dst1.join("sub").join("sub.txt")), "v1");
 
     // The second checkout must follow v2's `.gitmodules` instead of using
     // the stale URL registered by the first checkout.
-    let dst2 = clone(&template_uri, Some("v2"), Some(&clones.join("second"))).unwrap();
+    let dst2 = with_git_env(&env, || {
+        clone(&template_uri, Some("v2"), Some(&clones.join("second")))
+    })
+    .unwrap();
     assert_eq!(read(dst2.join("sub").join("sub.txt")), "v2");
 }
 
 #[test]
-#[ignore = "needs-design: gitconfig fixture needed to set core.fsmonitor"]
 fn test_local_dirty_clone() {
-    // TODO(port): the `gitconfig` fixture is needed to set `core.fsmonitor=true`.
-    // gitconfig.set({"core.fsmonitor": "true"})
-    //
     // When core.fsmonitor is enabled, normal `git checkout` command won't works.
     let tmp = Tmp::new();
+    let gitconfig = write_gitconfig(&tmp, "[core]\n\tfsmonitor = true\n");
     let src = tmp.mktemp("src");
 
     file_tree! { src.join("version.txt") => "0.1.0" };
@@ -378,7 +387,9 @@ fn test_local_dirty_clone() {
         src.join("README.md") => "hello world",
     };
 
-    let (result, warnings) = capture_warnings(|| clone(src.to_str().unwrap(), None, None));
+    let (result, warnings) = with_git_env(&[("GIT_CONFIG_GLOBAL", gitconfig.as_os_str())], || {
+        capture_warnings(|| clone(src.to_str().unwrap(), None, None))
+    });
     let local_tmp = result.unwrap();
     assert!(warnings.iter().any(|w| w.kind == WarningKind::DirtyLocal));
     assert!(local_tmp.join("version.txt").exists());
@@ -434,6 +445,8 @@ fn test_removes_temporary_clone() {
         .run_copy()
         .unwrap();
     let temp_clone = worker.template().unwrap().local_abspath().unwrap();
+    // The clone lives as long as the worker; Python's `with Worker(...)` ends here.
+    drop(worker);
     assert!(!temp_clone.exists());
 }
 
@@ -515,7 +528,6 @@ fn test_update_using_local_source_path_with_tilde() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_invalid_version() {
     let tmp = Tmp::new();
     let dir = tmp.path();
@@ -537,7 +549,6 @@ fn test_invalid_version() {
 #[rstest]
 #[case(false)]
 #[case(true)]
-#[ignore = "pending"]
 fn test_select_latest_version_tag(#[case] reversed: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -565,7 +576,6 @@ fn test_select_latest_version_tag(#[case] reversed: bool) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_is_git_repo_root_worktree() {
     // is_git_repo_root should return True for git worktrees where .git is a file.
     let tmp = Tmp::new();
@@ -587,7 +597,6 @@ fn test_is_git_repo_root_worktree() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_get_repo_worktree() {
     // get_repo should recognise a git worktree as a valid local repo.
     let tmp = Tmp::new();
@@ -608,7 +617,6 @@ fn test_get_repo_worktree() {
 #[rstest]
 #[case("git version 2.53.0\n", (2, 53, 0))]
 #[case("git version 2.53.GIT\n", (2, 53, 0))]
-#[ignore = "pending"]
 fn test_get_git_version(
     #[case] git_version_output: &str,
     #[case] expected_version: (u64, u64, u64),

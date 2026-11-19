@@ -51,7 +51,6 @@ fn template_path(tmp: &Tmp) -> PathBuf {
     root
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_answersfile(#[values(None, Some(".changed-by-user.yaml"))] answers_file: Option<&str>) {
     let template_tmp = Tmp::new();
@@ -109,7 +108,6 @@ fn test_answersfile(#[values(None, Some(".changed-by-user.yaml"))] answers_file:
     assert!(!log.contains_key("password_2"));
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_answersfile_with_custom_path(
     #[values(
@@ -174,7 +172,6 @@ fn test_answersfile_with_custom_path(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_answersfile_template_in_subdirectory_is_deprecated() {
     // Test that the answers file template in a subdirectory is deprecated.
     //
@@ -235,7 +232,6 @@ fn test_answersfile_template_in_subdirectory_is_deprecated() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_external_data() {
     let tmp = Tmp::new();
     let (parent1, parent2, child, dst) = (
@@ -335,7 +331,6 @@ fn test_external_data() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_external_data_with_umlaut() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -422,7 +417,6 @@ fn test_external_data_with_unicode_characters(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_undefined_phase_in_external_data() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -448,7 +442,6 @@ fn test_undefined_phase_in_external_data() {
     assert_eq!(answers["key"], Value::from("value"));
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_external_data_path_outside_destination_root_is_unsafe_on_copy(
     #[values(false, true)] is_absolute: bool,
@@ -489,7 +482,6 @@ fn test_external_data_path_outside_destination_root_is_unsafe_on_copy(
     }
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_external_data_path_outside_destination_root_is_unsafe_on_update(
     #[values(false, true)] is_absolute: bool,

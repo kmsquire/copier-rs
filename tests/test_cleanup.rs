@@ -35,7 +35,6 @@ fn sigint_tasks() -> String {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_cleanup() {
     // Copier creates dst_path, fails to copy and removes it.
     let tmp = Tmp::new();
@@ -51,7 +50,6 @@ fn test_cleanup() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_do_not_cleanup() {
     // Copier creates dst_path, fails to copy and keeps it.
     let tmp = Tmp::new();
@@ -68,7 +66,6 @@ fn test_do_not_cleanup() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_no_cleanup_when_folder_existed() {
     // Copier will not delete a folder if it didn't create it.
     let tmp = Tmp::new();
@@ -87,7 +84,6 @@ fn test_no_cleanup_when_folder_existed() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_no_cleanup_when_template_in_parent_folder() {
     // Copier will not delete a local template in a parent folder.
     let tmp = Tmp::new();
@@ -216,7 +212,6 @@ fn test_cleanup_on_interrupt_during_git_clone() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_cleanup_does_not_mask_render_error() {
     // Copier reports the render error, not a failure from its own cleanup.
     let tmp = Tmp::new();

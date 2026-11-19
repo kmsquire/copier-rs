@@ -8,7 +8,6 @@ use copier::CopierError;
 use indoc::indoc;
 
 #[test]
-#[ignore = "pending"]
 fn test_default() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -23,7 +22,6 @@ fn test_default() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_invalid_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -43,7 +41,6 @@ fn test_invalid_value() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_undefined() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -61,7 +58,6 @@ fn test_undefined() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_strictundefined_undefined_variable() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

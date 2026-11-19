@@ -10,6 +10,7 @@ use common::{
     symlink, v, worker, Tmp,
 };
 use copier::errors::{capture_warnings, WarningKind};
+use copier::vcs::with_git_env;
 use copier::{CopierError, Worker};
 use indoc::indoc;
 use serde_json::json;
@@ -28,8 +29,19 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
+/// Write a git config with GPG signing enabled and return its path (`gitconfig` fixture).
+fn gpg_gitconfig(tmp: &Tmp) -> std::path::PathBuf {
+    let path = tmp.path().join("gitconfig");
+    let base = std::fs::read_to_string(common::fixtures().join("gitconfig")).unwrap();
+    std::fs::write(
+        &path,
+        format!("{base}\n[user]\n\tsigninkey = 123456\n[commit]\n\tgpgsign = true\n"),
+    )
+    .unwrap();
+    path
+}
+
 #[test]
-#[ignore = "pending"]
 fn test_copy() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -57,7 +69,6 @@ fn test_copy() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_with_tag() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -75,7 +86,6 @@ fn test_copy_with_tag() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_with_tag_and_ref_head() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -95,7 +105,6 @@ fn test_copy_with_tag_and_ref_head() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_dirty_head() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -114,7 +123,6 @@ fn test_copy_dirty_head() {
 }
 
 #[test]
-#[ignore = "needs-design: per-test git config"]
 fn test_copy_dirty_head_with_gpg() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -125,8 +133,10 @@ fn test_copy_dirty_head_with_gpg() {
     git(&src, &["init"]);
     git(&src, &["add", "tracked"]);
     git(&src, &["commit", "-m1"]);
-    // TODO(port): gitconfig.set({"user.signinkey": "123456", "commit.gpgsign": "true"}) needs per-test git config
-    let (result, warnings) = capture_warnings(|| worker(&src, &dst).vcs_ref("HEAD").run_copy());
+    let gitconfig = gpg_gitconfig(&tmp);
+    let (result, warnings) = with_git_env(&[("GIT_CONFIG_GLOBAL", gitconfig.as_os_str())], || {
+        capture_warnings(|| worker(&src, &dst).vcs_ref("HEAD").run_copy())
+    });
     result.unwrap();
     assert!(warnings.iter().any(|w| w.kind == WarningKind::DirtyLocal));
 
@@ -135,7 +145,6 @@ fn test_copy_dirty_head_with_gpg() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -228,7 +237,6 @@ fn test_update() {
 }
 
 #[test]
-#[ignore = "needs-design: per-test git config"]
 fn test_update_with_gpg_sign() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -265,20 +273,21 @@ fn test_update_with_gpg_sign() {
     git(&dst, &["add", "-A"]);
     git(&dst, &["commit", "-m", "first commit on dst"]);
 
-    // TODO(port): gitconfig.set({"user.signinkey": "123456", "commit.gpgsign": "true"}) needs per-test git config
-    let (result, warnings) = capture_warnings(|| {
-        Worker::new()
-            .dst_path(&dst)
-            .defaults(true)
-            .overwrite(true)
-            .run_update()
+    let gitconfig = gpg_gitconfig(&tmp);
+    let (result, warnings) = with_git_env(&[("GIT_CONFIG_GLOBAL", gitconfig.as_os_str())], || {
+        capture_warnings(|| {
+            Worker::new()
+                .dst_path(&dst)
+                .defaults(true)
+                .overwrite(true)
+                .run_update()
+        })
     });
     result.unwrap();
     assert!(warnings.iter().any(|w| w.kind == WarningKind::DirtyLocal));
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_parallel_projects_in_subdirs() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");

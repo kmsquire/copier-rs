@@ -44,7 +44,6 @@ fn with_default_exclude(extra: &[&str]) -> Vec<String> {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_data_is_loaded_from_file() {
     let tpl = Template::new(fixture("demo_data").to_str().unwrap());
     assert_eq!(tpl.exclude().unwrap(), vec!["exclude1", "exclude2"]);
@@ -59,7 +58,6 @@ fn test_config_data_is_loaded_from_file() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_data_is_merged_from_files() {
     let tpl = Template::new(
         fixture("demo_merge_options_from_answerfiles")
@@ -81,7 +79,6 @@ fn test_config_data_is_merged_from_files() {
     assert_eq!(tpl.secret_questions().unwrap(), vec!["question1"]);
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_read_data(#[values("yaml", "yml")] config_suffix: &str) {
     let tmp = Tmp::new();
@@ -122,7 +119,6 @@ fn test_read_data(#[values("yaml", "yml")] config_suffix: &str) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_settings_defaults_precedence() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -176,7 +172,6 @@ fn test_settings_defaults_precedence() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_invalid_yaml() {
     let conf_path = fixture("demo_invalid").join("copier.yml");
     let (result, out) = copier::output::capture(|| load_template_config(&conf_path, false));
@@ -197,7 +192,6 @@ fn test_invalid_yaml() {
 #[case("!!python/object:pathlib.PurePosixPath {}")]
 #[case("!!python/module:os")]
 /// A template's own config cannot name a Python object.
-#[ignore = "pending"]
 fn test_config_cannot_construct_python_objects(#[case] tag: &str) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -253,7 +247,6 @@ fn test_authorization_does_not_enable_python_yaml_tags(
 #[case("demo_transclude_invalid", false)]
 // test key collision between two included files
 #[case("demo_transclude_invalid_multi", false)]
-#[ignore = "pending"]
 fn test_invalid_config_data(#[case] conf_path: &str, #[case] check_err: bool) {
     let template = Template::new(fixture(conf_path).to_str().unwrap());
     let (result, out) = copier::output::capture(|| template.config_data());
@@ -265,7 +258,6 @@ fn test_invalid_config_data(#[case] conf_path: &str, #[case] check_err: bool) {
 
 /// Including multiple files works fine merged with multiple sections.
 #[test]
-#[ignore = "pending"]
 fn test_valid_multi_section() {
     let tmp = Tmp::new();
     file_tree! {
@@ -324,7 +316,6 @@ fn test_valid_multi_section() {
 
 /// Empty sections are ignored.
 #[test]
-#[ignore = "pending"]
 fn test_empty_section() {
     let tmp = Tmp::new();
     file_tree! {
@@ -352,7 +343,6 @@ fn test_empty_section() {
 
 /// Include path must not be a relative path.
 #[test]
-#[ignore = "pending"]
 fn test_include_path_must_be_relative() {
     let tmp = Tmp::new();
     file_tree! {
@@ -369,7 +359,6 @@ fn test_include_path_must_be_relative() {
 }
 
 /// Include value must be a YAML scalar node.
-#[ignore = "pending"]
 #[rstest]
 fn test_include_value_must_be_scalar_node(#[values("[]", "{}")] include_value: &str) {
     let tmp = Tmp::new();
@@ -385,7 +374,6 @@ fn test_include_value_must_be_scalar_node(#[values("[]", "{}")] include_value: &
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_include_path_outside_template_root_raises_error() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -404,7 +392,6 @@ fn test_include_path_outside_template_root_raises_error() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_data_empty() {
     let template = Template::new(fixture("demo_config_empty").to_str().unwrap());
     assert_eq!(template.config_data().unwrap(), Mapping::new());
@@ -412,7 +399,6 @@ fn test_config_data_empty() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_multiple_config_file_error() {
     let template = Template::new(fixture("demo_multi_config").to_str().unwrap());
     assert_err!(
@@ -422,7 +408,6 @@ fn test_multiple_config_file_error() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_missing_template() {
     let tmp = Tmp::new();
     assert_err!(
@@ -432,7 +417,6 @@ fn test_missing_template() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_worker_good_data() {
     // This test is probably useless, as it tests the what and not the how
     let tmp = Tmp::new();
@@ -461,7 +445,6 @@ fn test_worker_good_data() {
     &["aaa"],
     vec!["exclude1".to_owned(), "exclude2".to_owned(), "aaa".to_owned()]
 )]
-#[ignore = "pending"]
 fn test_worker_config_precedence(
     #[case] src_path: PathBuf,
     #[case] exclude: &[&str],
@@ -477,7 +460,6 @@ fn test_worker_config_precedence(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_data_transclusion() {
     let config = Worker::new().src_path(fixture("demo_transclude"));
     assert_eq!(
@@ -487,7 +469,6 @@ fn test_config_data_transclusion() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_data_nested_transclusions() {
     let config = Worker::new().src_path(fixture("demo_transclude_nested_include"));
     assert_eq!(
@@ -542,7 +523,6 @@ fn test_config_data_nested_transclusions() {
         A list: four, five, six
     "}
 )]
-#[ignore = "pending"]
 fn test_user_defaults(
     #[case] user_defaults: serde_json::Value,
     #[case] data: serde_json::Value,
@@ -646,7 +626,6 @@ fn test_user_defaults(
     "A string: yosemite\n",
     "A string: red rocks\n"
 )]
-#[ignore = "pending"]
 fn test_user_defaults_updated(
     #[case] user_defaults_initial: serde_json::Value,
     #[case] user_defaults_updated: serde_json::Value,
@@ -715,7 +694,6 @@ fn test_user_defaults_updated(
     _secret_questions:
         - question
 "})]
-#[ignore = "pending"]
 fn test_secret_question_requires_default_value(#[case] config: &str) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

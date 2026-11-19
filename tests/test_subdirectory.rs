@@ -51,7 +51,6 @@ fn template_path(tmp: &Tmp) -> PathBuf {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_subdirectory_api_option() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -67,7 +66,6 @@ fn test_copy_subdirectory_api_option() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_subdirectory_config() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -82,7 +80,6 @@ fn test_copy_subdirectory_config() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_subdirectory_config_no_overwrite() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -101,7 +98,6 @@ fn test_copy_subdirectory_config_no_overwrite() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_subdirectory() {
     let tmp = Tmp::new();
     let template = template_path(&tmp);
@@ -127,7 +123,6 @@ fn test_update_subdirectory() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_subdirectory_from_root_path() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -203,7 +198,6 @@ fn test_update_subdirectory_from_root_path() {
     "},
     false
 )]
-#[ignore = "pending"]
 fn test_new_version_uses_subdirectory(
     #[case] conflict: ConflictMode,
     #[case] readme: &str,
@@ -286,7 +280,6 @@ fn test_new_version_uses_subdirectory(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_new_version_changes_subdirectory() {
     // Template in v3 changes from one subdirectory to another.
     // Some file evolves also. Sub-project evolves separately.
@@ -353,7 +346,6 @@ fn test_new_version_changes_subdirectory() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_subdirectory_path_outside_template_root_on_copy_raises_error(
     #[values(false, true)] is_absolute: bool,
 ) {
@@ -376,7 +368,6 @@ fn test_subdirectory_path_outside_template_root_on_copy_raises_error(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_subdirectory_path_outside_template_root_on_update_raises_error(
     #[values(false, true)] is_absolute: bool,
 ) {

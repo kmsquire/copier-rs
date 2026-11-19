@@ -4,9 +4,14 @@ mod common;
 
 use common::{assert_err, file_tree, git, load_answers, run_cli, worker, Tmp, ANSWERS_FILE_TMPL};
 use copier::errors::{capture_warnings, WarningKind};
+use copier::settings::with_locations;
 use copier::{CopierError, Value, Worker};
 use rstest::rstest;
 use serde_json::json;
+
+// Python's `tests.test_unsafe.JinjaExtension` cannot be loaded by a Rust binary: the
+// extension is only a vehicle for "the template declares a Jinja extension", so a
+// natively supported one stands in for it.
 
 /// Expected outcome of a case: no error (`does_not_raise`), an `UnsafeTemplate` error
 /// matching the pattern (`pytest.raises`), or a deprecation warning (`deprecated_call`).
@@ -40,15 +45,14 @@ enum Expected {
     Expected::Ok
 )]
 #[case(json!({"_jinja_extensions": []}), Expected::Ok)]
-#[case(json!({"_jinja_extensions": ["tests.test_unsafe.JinjaExtension"]}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions."))]
+#[case(json!({"_jinja_extensions": ["jinja2.ext.loopcontrols"]}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions."))]
 #[case(
     json!({
         "_tasks": ["touch task.txt"],
-        "_jinja_extensions": ["tests.test_unsafe.JinjaExtension"],
+        "_jinja_extensions": ["jinja2.ext.loopcontrols"],
     }),
     Expected::Unsafe("Template uses potentially unsafe features: jinja_extensions, tasks.")
 )]
-#[ignore = "pending"]
 fn test_copy(
     #[values(false, true)] unsafe_: bool,
     #[case] spec: serde_json::Value,
@@ -71,7 +75,6 @@ fn test_copy(
 }
 
 #[rstest]
-#[ignore = "needs-design: the CLI cannot be given Settings trust"]
 fn test_copy_cli(
     #[values(false, true)] unsafe_: bool,
     #[values(false, true)] trusted_from_settings: bool,
@@ -82,8 +85,11 @@ fn test_copy_cli(
     file_tree! {
         src.join("copier.yaml") => json!({"_tasks": ["touch task.txt"]}).to_string(),
     };
+    let config = tmp.path().join("config");
+    std::fs::create_dir(&config).unwrap();
+    let settings_path = config.join("settings.yml");
     if trusted_from_settings {
-        // TODO(port): `settings_path.write_text(f"trust: ['{src}']")`; `run_cli` cannot receive `Settings`.
+        std::fs::write(&settings_path, format!("trust: ['{}']", src.display())).unwrap();
     }
 
     let mut args = vec!["copy"];
@@ -91,7 +97,7 @@ fn test_copy_cli(
         args.push("--UNSAFE");
     }
     args.extend([src_s, dst_s]);
-    let (retcode, out) = run_cli(&args);
+    let (retcode, out) = with_locations(&settings_path, None, || run_cli(&args));
     if unsafe_ || trusted_from_settings {
         assert_eq!(retcode, 0);
     } else {
@@ -178,9 +184,9 @@ fn test_copy_cli(
     Expected::Unsafe("Template uses potentially unsafe feature: migrations.")
 )]
 #[case(json!({"_jinja_extensions": []}), json!({"_jinja_extensions": []}), Expected::Ok)]
-#[case(json!({"_jinja_extensions": ["tests.test_unsafe.JinjaExtension"]}), json!({}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions."))]
-#[case(json!({}), json!({"_jinja_extensions": ["tests.test_unsafe.JinjaExtension"]}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions."))]
-#[case(json!({"_jinja_extensions": ["tests.test_unsafe.JinjaExtension"]}), json!({"_jinja_extensions": ["tests.test_unsafe.JinjaExtension"]}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions"))]
+#[case(json!({"_jinja_extensions": ["jinja2.ext.loopcontrols"]}), json!({}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions."))]
+#[case(json!({}), json!({"_jinja_extensions": ["jinja2.ext.loopcontrols"]}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions."))]
+#[case(json!({"_jinja_extensions": ["jinja2.ext.loopcontrols"]}), json!({"_jinja_extensions": ["jinja2.ext.loopcontrols"]}), Expected::Unsafe("Template uses potentially unsafe feature: jinja_extensions"))]
 #[case(
     json!({}),
     json!({
@@ -197,11 +203,10 @@ fn test_copy_cli(
                 "command": "touch v2-after.txt",
             },
         ],
-        "_jinja_extensions": ["tests.test_unsafe.JinjaExtension"],
+        "_jinja_extensions": ["jinja2.ext.loopcontrols"],
     }),
     Expected::Unsafe("Template uses potentially unsafe features: jinja_extensions, migrations, tasks.")
 )]
-#[ignore = "pending"]
 fn test_update(
     #[values(false, true)] unsafe_: bool,
     #[case] spec_old: serde_json::Value,
@@ -259,7 +264,6 @@ fn test_update(
 #[case(None)]
 #[case(Some("--trust"))]
 #[case(Some("--UNSAFE"))]
-#[ignore = "needs-design: the CLI cannot be given Settings trust"]
 fn test_update_cli(
     #[case] unsafe_arg: Option<&str>,
     #[values(false, true)] trusted_from_settings: bool,
@@ -278,15 +282,18 @@ fn test_update_cli(
     git(&src, &["commit", "-m1"]);
     git(&src, &["tag", "v1"]);
 
+    let config = tmp.path().join("config");
+    std::fs::create_dir(&config).unwrap();
+    let settings_path = config.join("settings.yml");
     if trusted_from_settings {
-        // TODO(port): `settings_path.write_text(f"trust: ['{src}']")`; `run_cli` cannot receive `Settings`.
+        std::fs::write(&settings_path, format!("trust: ['{}']", src.display())).unwrap();
     }
 
     let copy_args: Vec<&str> = ["copy", src_s, dst_s]
         .into_iter()
         .chain(unsafe_arg)
         .collect();
-    let (retcode, _) = run_cli(&copy_args);
+    let (retcode, _) = with_locations(&settings_path, None, || run_cli(&copy_args));
     assert_eq!(retcode, 0);
     assert_eq!(load_answers(&dst)["_commit"], Value::from("v1"));
 
@@ -302,7 +309,7 @@ fn test_update_cli(
     git(&src, &["tag", "v2"]);
 
     let update_args: Vec<&str> = ["update", dst_s].into_iter().chain(unsafe_arg).collect();
-    let (retcode, out) = run_cli(&update_args);
+    let (retcode, out) = with_locations(&settings_path, None, || run_cli(&update_args));
     if unsafe_ || trusted_from_settings {
         assert_eq!(retcode, 0);
     } else {

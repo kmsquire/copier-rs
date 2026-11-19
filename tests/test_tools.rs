@@ -10,7 +10,6 @@ use copier::Value;
 use rstest::rstest;
 
 #[rstest]
-#[ignore = "pending"]
 fn test_cast_to_bool_treats_blank_strings_as_false(
     #[values("", " ", "\t", "\n", "  \n\t  ")] value: &str,
 ) {
@@ -20,7 +19,6 @@ fn test_cast_to_bool_treats_blank_strings_as_false(
 #[rstest]
 #[case(" true ", true)]
 #[case("\nfalse\n", false)]
-#[ignore = "pending"]
 fn test_cast_to_bool_ignores_surrounding_whitespace(#[case] value: &str, #[case] expected: bool) {
     assert_eq!(cast_to_bool(&Value::from(value)), expected);
 }
@@ -28,7 +26,6 @@ fn test_cast_to_bool_ignores_surrounding_whitespace(#[case] value: &str, #[case]
 /// Ensure temporary directories containing read-only files are properly deleted,
 /// whatever the OS.
 #[test]
-#[ignore = "pending"]
 fn test_temporary_directory_with_readonly_files_deletion() {
     let tmp_dir = tempfile::tempdir().unwrap();
     let tmp_path = tmp_dir.path().to_path_buf();
@@ -44,7 +41,6 @@ fn test_temporary_directory_with_readonly_files_deletion() {
 /// Ensure temporary directories containing git repositories are properly deleted,
 /// whatever the OS.
 #[test]
-#[ignore = "pending"]
 fn test_temporary_directory_with_git_repo_deletion() {
     let tmp_dir = tempfile::tempdir().unwrap();
     let tmp_path = tmp_dir.path().to_path_buf();
@@ -74,7 +70,6 @@ fn test_temporary_directory_with_git_repo_deletion() {
     &["\x07\x08\x0c\n\t\x0bcontrol\x07\x08\x0c\n\t\x0bcharacters\x07\x08\x0c\n\t\x0b"]
 )]
 #[case("lf\n\0qu\"o\\tes\0", &["lf\n", "qu\"o\\tes"])]
-#[ignore = "pending"]
 fn test_split_nul(#[case] output: &str, #[case] entries: &[&str]) {
     assert_eq!(split_nul(output), entries);
 }

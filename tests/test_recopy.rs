@@ -24,7 +24,6 @@ fn tpl(tmp: &Tmp) -> PathBuf {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_recopy_discards_evolution_api() {
     let tmp = Tmp::new();
     let tpl = tpl(&tmp);
@@ -53,7 +52,6 @@ fn test_recopy_discards_evolution_api() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_recopy_discards_evolution_cli() {
     let tmp = Tmp::new();
     let tpl = tpl(&tmp);
@@ -78,7 +76,6 @@ fn test_recopy_discards_evolution_cli() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_recopy_works_without_replay() {
     let tmp = Tmp::new();
     let tpl = tpl(&tmp);
@@ -113,7 +110,6 @@ fn test_recopy_works_without_replay() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_recopy_with_skip_answered_and_new_answer() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -144,7 +140,6 @@ fn test_recopy_with_skip_answered_and_new_answer() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_recopy_dont_validate_computed_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -179,7 +174,6 @@ fn test_recopy_dont_validate_computed_value() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_conditional_computed_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

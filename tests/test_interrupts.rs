@@ -40,7 +40,6 @@ impl Prompter for ScriptedPrompter {
 // TODO(port): the `CopierAnswersInterrupt` parametrize case has no Rust input; the
 // prompter can only yield `PromptError::Interrupted` (the `KeyboardInterrupt` case).
 #[test]
-#[ignore = "pending"]
 fn test_keyboard_interrupt() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -63,7 +62,6 @@ fn test_keyboard_interrupt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_multiple_questions_interrupt() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

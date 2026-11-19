@@ -516,7 +516,6 @@ fn test_commit_hooks_respected() {
 
 /// Ignore post-checkout hook when conflicts are encountered.
 #[test]
-#[ignore = "pending"]
 fn test_post_checkout_hook_ignored() {
     // Prepare source template v1
     let tmp = Tmp::new();
@@ -567,7 +566,6 @@ fn test_post_checkout_hook_ignored() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_from_tagged_to_head() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -612,7 +610,6 @@ fn test_update_from_tagged_to_head() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_skip_update(
     #[values("skip_me", "/skip_me")] skip_pattern: &str,
     #[values("", "subproject")] subproject_path: &str,
@@ -681,7 +678,6 @@ fn test_skip_update(
 #[case("!skip_special")]
 // skipif(platform.system() == "Windows", reason="Disallowed characters in file name")
 #[case("sk\\ip_with_backslash_in_skip_pattern")]
-#[ignore = "pending"]
 fn test_skip_update_deleted(#[case] file_name: &str) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -747,7 +743,6 @@ fn test_skip_update_deleted(#[case] file_name: &str) {
 #[case("!special")]
 // skipif(platform.system() == "Windows", reason="Disallowed characters in file name")
 #[case("dont_wildmatch*")]
-#[ignore = "pending"]
 fn test_update_deleted_path(#[case] file_name: &str) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -792,7 +787,6 @@ fn test_update_deleted_path(#[case] file_name: &str) {
 /// Test that user-deleted paths don't cause deletion of other paths matching
 /// the same pattern when updating a project.
 #[test]
-#[ignore = "pending"]
 fn test_update_deleted_path_not_used_as_pattern() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -827,7 +821,6 @@ fn test_update_deleted_path_not_used_as_pattern() {
 #[case(None)]
 #[case(Some(".copier-answers.yml"))]
 #[case(Some(".custom.copier-answers.yaml"))]
-#[ignore = "pending"]
 fn test_overwrite_answers_file_always(#[case] answers_file: Option<&str>) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -866,7 +859,6 @@ fn test_overwrite_answers_file_always(#[case] answers_file: Option<&str>) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_file_removed() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -961,7 +953,6 @@ fn test_file_removed() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_update_inline_changed_answers_and_questions(#[values(true, false)] interactive: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1067,7 +1058,6 @@ fn test_update_inline_changed_answers_and_questions(#[values(true, false)] inter
 #[rstest]
 #[case(ConflictMode::Rej)]
 #[case(ConflictMode::Inline)]
-#[ignore = "pending"]
 fn test_update_in_repo_subdirectory(#[case] conflict: ConflictMode) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1131,11 +1121,23 @@ fn test_update_in_repo_subdirectory(#[case] conflict: ConflictMode) {
 // xfail(raises=AssertionError, reason="Not enough context lines to resolve the conflict.",
 // strict=True); context_lines=3 is expected to pass.
 #[rstest]
-#[ignore = "pending"]
 fn test_update_needs_more_context(
     #[values(1, 2, 3)] context_lines: u32,
     #[values(true, false)] api: bool,
 ) {
+    if context_lines < 3 {
+        // Strict xfail upstream: the update must NOT resolve cleanly.
+        let outcome = std::panic::catch_unwind(|| update_needs_more_context(context_lines, api));
+        assert!(
+            outcome.is_err(),
+            "expected a conflict with {context_lines} context lines"
+        );
+    } else {
+        update_needs_more_context(context_lines, api);
+    }
+}
+
+fn update_needs_more_context(context_lines: u32, api: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
     let (src_str, dst_str) = (src.to_str().unwrap(), dst.to_str().unwrap());
@@ -1270,7 +1272,6 @@ fn test_update_needs_more_context(
 // Python picks the file name "qu`o'tes" on Windows (double quotes are not supported in
 // file names there) and 'qu`o"tes' elsewhere.
 #[rstest]
-#[ignore = "pending"]
 fn test_conflicted_files_are_marked_unmerged(
     #[values("README.md", "spa ces", "qu`o\"tes", "m4â4ñ4a")] filename: &str,
     #[values(false, true)] gitignore_rej: bool,
@@ -1360,7 +1361,6 @@ fn test_conflicted_files_are_marked_unmerged(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_3way_merged_files_without_conflicts_are_not_marked_unmerged() {
     let filename = "readme.md";
 
@@ -1428,7 +1428,6 @@ fn test_3way_merged_files_without_conflicts_are_not_marked_unmerged() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_with_new_file_in_template_and_project() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1515,7 +1514,6 @@ fn test_update_with_new_file_in_template_and_project() {
 #[case("tab\there")]
 // skipif(platform.system() == "Windows", reason="Control characters are not supported in file names on Windows.")
 #[case("line\nbreak")]
-#[ignore = "pending"]
 fn test_update_with_new_file_in_template_and_project_with_special_characters(
     #[case] filename: &str,
 ) {
@@ -1570,7 +1568,6 @@ fn test_update_with_new_file_in_template_and_project_with_special_characters(
 /// that file (which was also moved there, but Git doesn't recognize it as status `R`
 /// but as `A`).
 #[test]
-#[ignore = "pending"]
 fn test_update_with_new_file_in_template_and_project_via_migration() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1711,7 +1708,6 @@ fn test_update_with_new_file_in_template_and_project_via_migration() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_with_separate_git_directory() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -1756,7 +1752,6 @@ fn test_update_with_separate_git_directory() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_with_skip_answered_and_new_answer() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1790,7 +1785,6 @@ fn test_update_with_skip_answered_and_new_answer() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_update_vcs_ref_current(#[values(true, false)] cli: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1847,7 +1841,6 @@ fn test_update_vcs_ref_current(#[values(true, false)] cli: bool) {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_dont_validate_computed_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1885,7 +1878,6 @@ fn test_update_dont_validate_computed_value() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_git_submodule() {
     let tmp = Tmp::new();
     let src = tmp.mktemp("src");
@@ -1950,7 +1942,6 @@ fn test_update_git_submodule() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_gitignore_file_unignored() {
     let env_file = ".env";
     let gitignore_file = ".gitignore";
@@ -2014,7 +2005,6 @@ fn test_gitignore_file_unignored() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_keeps_template_generated_gitignored_file() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2049,7 +2039,6 @@ fn test_update_keeps_template_generated_gitignored_file() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_with_answers_with_umlaut() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2085,7 +2074,6 @@ fn test_update_with_answers_with_umlaut() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_conflict_on_update_with_unicode_in_content() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2169,7 +2157,6 @@ fn test_conflict_on_update_with_unicode_in_content() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_conditional_computed_value() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2230,7 +2217,6 @@ fn test_conditional_computed_value() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_disable_secret_validator_on_replay() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2275,7 +2261,6 @@ fn test_disable_secret_validator_on_replay() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_exclude_added_in_new_version() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2318,7 +2303,6 @@ fn test_exclude_added_in_new_version() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_skip_if_exists_templated() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2357,7 +2341,6 @@ fn test_skip_if_exists_templated() {
 
 /// See https://github.com/copier-org/copier/issues/2448.
 #[test]
-#[ignore = "pending"]
 fn test_render_copier_conf_as_json_without_circular_reference() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2392,7 +2375,6 @@ fn test_render_copier_conf_as_json_without_circular_reference() {
 // skipif(condition=platform.system() == "Windows", reason="Windows does not have UNIX-like permissions")
 #[cfg(unix)]
 #[rstest]
-#[ignore = "pending"]
 fn test_update_propagates_executable_bit_addition(#[values(true, false)] file_mode: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2472,7 +2454,6 @@ fn test_update_propagates_executable_bit_addition(#[values(true, false)] file_mo
 // skipif(condition=platform.system() == "Windows", reason="Windows does not have UNIX-like permissions")
 #[cfg(unix)]
 #[rstest]
-#[ignore = "pending"]
 fn test_update_propagates_executable_bit_removal(#[values(true, false)] file_mode: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -2627,7 +2608,6 @@ fn test_update_preserves_exec_bit_authored_on_unix() {
 // skipif(condition=platform.system() == "Windows", reason="Windows does not have UNIX-like permissions")
 #[cfg(unix)]
 #[rstest]
-#[ignore = "pending"]
 fn test_update_with_exec_bit_change_and_merge_conflict(#[values(true, false)] file_mode: bool) {
     let filename = "launcher.sh";
     let tmp = Tmp::new();

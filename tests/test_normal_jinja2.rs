@@ -7,7 +7,6 @@ use copier::errors::capture_warnings;
 use indoc::indoc;
 
 #[test]
-#[ignore = "pending"]
 fn test_normal_jinja2() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -47,7 +46,6 @@ fn test_normal_jinja2() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_to_not_keep_trailing_newlines_in_jinja2() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

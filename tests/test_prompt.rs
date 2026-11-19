@@ -100,7 +100,6 @@ fn args_of<'a>(fixed: &[&'a str], extra: &'a [String]) -> Vec<&'a str> {
 #[case("Mario", &[])] // Default name in the template
 #[case("Luigi", &["--data=your_name=Luigi"])]
 #[case("None", &["--data=your_name=None"])]
-#[ignore = "pending"]
 fn test_copy_default_advertised(#[case] name: &str, #[case] args: &[&str]) {
     // Test that the questions for the user are OK
     let tmp = Tmp::new();
@@ -219,7 +218,6 @@ fn test_path_completion() {
 #[case("Mario", &[])] // Default name in the template
 #[case("Luigi", &["--data=your_name=Luigi"])]
 #[case("None", &["--data=your_name=None"])]
-#[ignore = "pending"]
 fn test_update_skip_answered(
     #[case] name: &str,
     #[case] args: &[&str],
@@ -278,7 +276,6 @@ fn test_update_skip_answered(
 #[case("Mario", &[])] // Default name in the template
 #[case("Luigi", &["--data=your_name=Luigi"])]
 #[case("None", &["--data=your_name=None"])]
-#[ignore = "pending"]
 fn test_update_with_new_field_in_new_version_skip_answered(
     #[case] name: &str,
     #[case] args: &[&str],
@@ -332,8 +329,8 @@ fn test_update_with_new_field_in_new_version_skip_answered(
 }
 
 /// Parse YAML text (`yaml.safe_load` in Python).
-fn yaml_safe_load(_text: &str) -> Value {
-    todo!("needs copier::yaml")
+fn yaml_safe_load(text: &str) -> Value {
+    copier::yaml::load(text).unwrap()
 }
 
 /// Python's `type(value).__name__` for a scalar JSON value.
@@ -366,7 +363,6 @@ fn py_type_name(value: &serde_json::Value) -> &'static str {
 #[case(json!("[[ not question_1 ]]"), false)]
 #[case(json!("[% if question_1 %]YES[% endif %]"), true)]
 #[case(json!("[% if question_1 %]FALSE[% endif %]"), false)]
-#[ignore = "needs-design: YAML parsing in tests"]
 fn test_when(
     // All these values evaluate to true
     #[values(
@@ -430,7 +426,6 @@ fn test_when(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_placeholder() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -473,7 +468,6 @@ fn test_placeholder() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_qmark() {
     // Test that custom qmark parameter is displayed for questions.
     let tmp = Tmp::new();
@@ -517,7 +511,6 @@ fn test_qmark() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_qmark_default() {
     // Test that default qmark emojis are used when qmark is not specified.
     let tmp = Tmp::new();
@@ -586,7 +579,6 @@ fn test_prompt_does_not_capture_mouse(#[case] question: serde_json::Value) {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_multiline(#[values("str", "yaml", "json")] type_: &str) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -656,7 +648,6 @@ fn test_multiline(#[values("str", "yaml", "json")] type_: &str) {
 #[case(json!([1, 2, 3]))]
 #[case(json!([["one", 1], ["two", 2], ["three", 3]]))]
 #[case(json!({"one": 1, "two": 2, "three": 3}))]
-#[ignore = "pending"]
 fn test_update_choice(#[case] choices: serde_json::Value) {
     // Choices are properly remembered and selected in TUI when updating.
     let tmp = Tmp::new();
@@ -696,7 +687,7 @@ fn test_update_choice(#[case] choices: serde_json::Value) {
 
 // pytest.mark.skip("TODO: fix this")
 #[test]
-#[ignore = "pending"]
+#[ignore = "skipped upstream: TODO: fix this"]
 fn test_multiline_defaults() {
     // Multiline questions with scalar defaults produce multiline defaults.
     let tmp = Tmp::new();
@@ -753,7 +744,6 @@ fn test_multiline_defaults() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_partial_interrupt() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -780,7 +770,6 @@ fn test_partial_interrupt() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_var_name_value_allowed() {
     // Test that a question var name "value" causes no name collision.
     //
@@ -814,7 +803,6 @@ fn test_var_name_value_allowed() {
 #[case("float", None)] // ValueError("Invalid input")
 #[case("json", None)] // ValueError("Invalid input")
 #[case("yaml", Some(json!(null)))]
-#[ignore = "pending"]
 fn test_required_text_question(
     #[case] type_name: &str,
     #[case] expected_answer: Option<serde_json::Value>,
@@ -854,7 +842,6 @@ fn test_required_text_question(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_required_bool_question() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -888,7 +875,6 @@ fn test_required_bool_question() {
 #[case("float", json!([1.0, 2.0, 3.0]), json!(1.0))]
 #[case("json", json!(["[1]", "[2]", "[3]"]), json!([1]))]
 #[case("yaml", json!(["- 1", "- 2", "- 3"]), json!([1]))]
-#[ignore = "pending"]
 fn test_required_choice_question(
     #[case] type_name: &str,
     #[case] choices: serde_json::Value,
@@ -963,7 +949,6 @@ macro_rules! choices_test {
         #[case::float("float", json!([1.0, 2.0, 3.0]), json!([1.0, 2.0, 3.0]))]
         #[case::json("json", json!(["[1]", "[2]", "[3]"]), json!([[1], [2], [3]]))]
         #[case::yaml("yaml", json!(["- 1", "- 2", "- 3"]), json!([[1], [2], [3]]))]
-        #[ignore = "pending"]
         fn $name(
             #[case] $type_name: &str,
             #[case] $choices: serde_json::Value,
@@ -1074,7 +1059,6 @@ choices_test! {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_multiselect_choices_validator() {
     // Multiple choices are validated.
     let tmp = Tmp::new();
@@ -1100,7 +1084,6 @@ fn test_multiselect_choices_validator() {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_secret_validator(#[values("s3cret", "")] default: &str) {
     // Secret question answer is validated.
     let tmp = Tmp::new();
@@ -1132,7 +1115,6 @@ fn test_secret_validator(#[values("s3cret", "")] default: &str) {
 // pytest.mark.xfail(platform.system() == "Windows",
 //     reason="prompt-toolkit in subprocess call fails on Windows")
 #[test]
-#[ignore = "pending"]
 fn test_interactive_session_required_for_question_prompt() {
     // Answering a question prompt requires an interactive session.
     let tmp = Tmp::new();
@@ -1155,7 +1137,6 @@ fn test_interactive_session_required_for_question_prompt() {
 // pytest.mark.xfail(platform.system() == "Windows",
 //     reason="prompt-toolkit in subprocess call fails on Windows")
 #[test]
-#[ignore = "pending"]
 fn test_interactive_session_required_for_overwrite_prompt() {
     // Overwriting a file without `--overwrite` flag requires an interactive session.
     let tmp = Tmp::new();
@@ -1235,7 +1216,6 @@ fn animal_project(tmp: &Tmp) -> (PathBuf, PathBuf) {
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_update_skip_answered_with_ask(
     #[values(vec!["*it*"], vec!["what_does_it_eat"], vec!["what_does_it_eat", "can_it_fly"])]
     ask: Vec<&str>,
@@ -1264,7 +1244,6 @@ fn test_update_skip_answered_with_ask(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_update_skip_answered_with_ask_and_data(
     #[values(vec!["*it*"], vec!["what_does_it_eat"], vec!["what_does_it_eat", "can_it_fly"])]
     ask: Vec<&str>,
@@ -1299,7 +1278,6 @@ fn test_update_skip_answered_with_ask_and_data(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_update_defaults_with_ask(
     #[values(vec!["*it*"], vec!["what_does_it_eat", "can_it_fly"])] ask: Vec<&str>,
     #[values("update", "recopy")] update_action: &str,
@@ -1327,7 +1305,6 @@ fn test_update_defaults_with_ask(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_update_defaults_with_ask_and_data(
     #[values(vec!["*it*"], vec!["what_does_it_eat", "can_it_fly"])] ask: Vec<&str>,
     #[values("update", "recopy")] update_action: &str,
@@ -1361,7 +1338,6 @@ fn test_update_defaults_with_ask_and_data(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_copy_defaults_with_ask(
     #[values(vec!["*it*"], vec!["what_does_it_eat", "can_it_fly"])] ask: Vec<&str>,
 ) {
@@ -1395,7 +1371,6 @@ fn test_copy_defaults_with_ask(
 }
 
 #[rstest]
-#[ignore = "pending"]
 fn test_copy_defaults_with_ask_and_data(
     #[values(vec!["*it*"], vec!["what_does_it_eat", "can_it_fly"])] ask: Vec<&str>,
 ) {
@@ -1446,7 +1421,6 @@ fn test_copy_defaults_with_ask_and_data(
 #[case(false, false, vec!["--ask=foo"], false)]
 #[case(false, false, vec!["--ask=f*"], false)]
 #[case(false, false, vec!["--ask=baz"], false)]
-#[ignore = "pending"]
 fn test_copy_with_ask_setting(
     #[case] when: bool,
     #[case] ask: bool,
@@ -1497,7 +1471,6 @@ fn test_copy_with_ask_setting(
 #[case(true, false, true, vec!["--ask=baz"], false)]
 #[case(false, true, false, vec![], false)]
 #[case(false, false, true, vec!["--ask=foo"], false)]
-#[ignore = "pending"]
 fn test_update_with_ask_setting(
     #[case] when: bool,
     #[case] ask: bool,

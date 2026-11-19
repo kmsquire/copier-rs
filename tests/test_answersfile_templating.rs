@@ -28,7 +28,6 @@ fn template_path(tmp: &Tmp) -> PathBuf {
     root
 }
 
-#[ignore = "pending"]
 #[rstest]
 fn test_answersfile_templating(
     #[values(None, Some(".changed-by-user.yml"))] answers_file: Option<&str>,
@@ -77,7 +76,6 @@ fn test_answersfile_templating(
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_answersfile_templating_with_message_before_copy() {
     // Test templated `_answers_file` setting with `_message_before_copy`.
     //
@@ -114,7 +112,6 @@ fn test_answersfile_templating_with_message_before_copy() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_answersfile_templating_phase() {
     // Ensure `_copier_phase` is available while render `answers_relpath`.
     // Not because it is directly useful, but because some extensions might need it.

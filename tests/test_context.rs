@@ -8,7 +8,7 @@ use indoc::formatdoc;
 use serde_json::json;
 
 #[test]
-#[ignore = "needs-design: Python Jinja extensions cannot be loaded"]
+#[ignore = "not applicable: Python Jinja extensions cannot be loaded"]
 fn test_no_path_variables() {
     // Test that there are no context variables of type `pathlib.Path`.
     // TODO(port): Python Jinja extensions cannot be loaded. The test writes this
@@ -58,7 +58,6 @@ fn test_no_path_variables() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_exclude_templating_with_operation() {
     // Ensure it's possible to create one-off boilerplate files that are not
     // managed during updates via `_exclude` using the `_copier_operation`
@@ -105,7 +104,6 @@ fn test_exclude_templating_with_operation() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_exclude_templating_with_operation_added_in_new_version() {
     // Ensure it's possible to create one-off boilerplate files that are not
     // managed during updates via `_exclude` using the `_copier_operation` context
@@ -152,7 +150,6 @@ fn test_exclude_templating_with_operation_added_in_new_version() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_task_templating_with_operation() {
     // Ensure that it is possible to define tasks that are only executed when copying.
     let tmp = Tmp::new();

@@ -12,7 +12,6 @@ use serde_json::json;
 
 /// Copy is done properly when excluding recursively.
 #[test]
-#[ignore = "pending"]
 fn test_exclude_recursive() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -24,7 +23,6 @@ fn test_exclude_recursive() {
 
 /// Copy is done properly when copy_me.txt is the sole file copied.
 #[test]
-#[ignore = "pending"]
 fn test_exclude_recursive_negate() {
     let tmp = Tmp::new();
     let dst = tmp.path();
@@ -36,7 +34,6 @@ fn test_exclude_recursive_negate() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -50,7 +47,6 @@ fn test_config_exclude() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_extended() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -68,7 +64,6 @@ fn test_config_exclude_extended() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_include() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -87,7 +82,6 @@ fn test_config_include() {
 /// repeating the condition on every entry. When the guard is false the block renders
 /// empty and excludes nothing.
 #[rstest]
-#[ignore = "pending"]
 fn test_config_exclude_multiline_conditional(#[values(true, false)] skip: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -124,7 +118,6 @@ fn test_config_exclude_multiline_conditional(#[values(true, false)] skip: bool) 
 }
 
 #[test]
-#[ignore = "pending"]
 // xfail(condition=platform.system() == "Darwin", reason="OS without proper UTF-8 filesystem.", strict=True)
 fn test_path_filter() {
     let tmp = Tmp::new();
@@ -169,7 +162,6 @@ fn test_path_filter() {
 
 /// Default excludes are not applied when a (true) subdirectory is specified.
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_with_subdirectory() {
     // Make sure the file under test is in the list of default excludes
     assert!(DEFAULT_EXCLUDE.contains(&"copier.yml"));
@@ -186,7 +178,6 @@ fn test_config_exclude_with_subdirectory() {
 
 /// Default excludes are applied when subdirectory is `.`.
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_with_subdirectory_dot() {
     // Make sure the file under test is in the list of default excludes
     assert!(DEFAULT_EXCLUDE.contains(&"copier.yml"));
@@ -203,7 +194,6 @@ fn test_config_exclude_with_subdirectory_dot() {
 
 /// Default excludes are applied when subdirectory is `""`.
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_with_subdirectory_empty_string() {
     // Make sure the file under test is in the list of default excludes
     assert!(DEFAULT_EXCLUDE.contains(&"copier.yml"));
@@ -220,7 +210,6 @@ fn test_config_exclude_with_subdirectory_empty_string() {
 
 /// Default excludes are applied when no subdirectory is specified.
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_without_subdirectory() {
     // Make sure the file under test is in the list of default excludes
     assert!(DEFAULT_EXCLUDE.contains(&"copier.yml"));
@@ -236,7 +225,6 @@ fn test_config_exclude_without_subdirectory() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_copieryml_without_templates_suffix() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -254,7 +242,6 @@ fn test_config_exclude_copieryml_without_templates_suffix() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_file_with_bad_jinja_syntax_without_templates_suffix() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -277,7 +264,6 @@ fn test_config_exclude_file_with_bad_jinja_syntax_without_templates_suffix() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_config_exclude_with_templated_path() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -304,7 +290,6 @@ fn test_config_exclude_with_templated_path() {
 
 /// Test wildcard exclude with negated nested file and symlink excludes.
 #[test]
-#[ignore = "pending"]
 fn test_exclude_wildcard_negate_nested_file() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();

@@ -14,7 +14,6 @@ use rstest::rstest;
 use serde_json::json;
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_symlink() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -49,7 +48,6 @@ fn test_copy_symlink() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_symlink_templated_name() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -85,7 +83,6 @@ fn test_copy_symlink_templated_name() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_symlink_templated_target() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -129,7 +126,6 @@ fn test_copy_symlink_templated_target() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_symlink_missing_target() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -163,7 +159,6 @@ fn test_copy_symlink_missing_target() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_option_preserve_symlinks_false() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -194,7 +189,6 @@ fn test_option_preserve_symlinks_false() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_option_preserve_symlinks_default() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -223,7 +217,6 @@ fn test_option_preserve_symlinks_default() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_symlink() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -287,7 +280,6 @@ fn test_update_symlink() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_file_to_symlink() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -351,7 +343,6 @@ fn test_update_file_to_symlink() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_exclude_symlink() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -381,7 +372,6 @@ fn test_exclude_symlink() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_pretend_symlink() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -411,7 +401,6 @@ fn test_pretend_symlink() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_copy_symlink_none_path() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -443,7 +432,6 @@ fn test_copy_symlink_none_path() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_recursive_symlink() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -464,7 +452,6 @@ fn test_recursive_symlink() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_symlinked_dir_expanded() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -490,7 +477,6 @@ fn test_symlinked_dir_expanded() {
 //     os.name == "nt", reason="Absolute paths not created as symlinks on Windows"
 // )
 #[test]
-#[ignore = "pending"]
 fn test_symlinked_to_outside_destination_absolute() {
     let tmp = Tmp::new();
     let (src, dst, other) = (tmp.mktemp("src"), tmp.mktemp("dst"), tmp.mktemp("other"));
@@ -546,7 +532,6 @@ fn test_symlinked_to_outside_destination_absolute() {
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_symlinked_to_outside_destination_relative() {
     let tmp = Tmp::new();
     let (src, dst_parent) = (tmp.mktemp("src"), tmp.mktemp("dst_parent"));
@@ -645,7 +630,6 @@ fn test_resolve_relative_symlink_outside_template_root_raises_error() {
 // )
 // Covered by the module-level `#![cfg(unix)]`.
 #[test]
-#[ignore = "pending"]
 fn test_resolve_absolute_symlink_outside_template_root_raises_error() {
     let tmp = Tmp::new();
     let (src, dst, other) = (tmp.mktemp("src"), tmp.mktemp("dst"), tmp.mktemp("other"));
@@ -677,7 +661,6 @@ fn test_resolve_absolute_symlink_outside_template_root_raises_error() {
 #[rstest]
 #[case(true)]
 #[case(false)]
-#[ignore = "pending"]
 fn test_destination_symlink_outside_destination_root(#[case] preserve_symlinks: bool) {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -698,7 +681,6 @@ fn test_destination_symlink_outside_destination_root(#[case] preserve_symlinks: 
 }
 
 #[test]
-#[ignore = "pending"]
 fn test_update_renamed_dir_does_not_delete_symlink_target() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
