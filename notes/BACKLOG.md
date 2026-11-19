@@ -14,7 +14,6 @@ Deferred work. Each item says why it was deferred.
 - **Windows**: untested; the Python suite's Windows-only cases are not ported.
 - **Tab-indented YAML** (`\ta: 1`) is rejected by PyYAML's scanner but accepted here
   (the underlying parser follows YAML 1.2).
-- **Ctrl-C during tasks or clones** does not run Copier's cleanup yet.
 - **Ansible filters not implemented**: `password_hash`, `to_datetime`, `extract`,
   `subelements`, `random_mac`, `ans_groupby`.
 - **Python-only template features**: `{% do %}`, string `%` formatting, pathlib
@@ -22,3 +21,9 @@ Deferred work. Each item says why it was deferred.
   attributes on `_version_pep440_*` (they are plain strings here).
 - **Real-terminal prompt rendering** has no automated test (needs a pty helper).
 - **Windows and Linux** have not been run.
+- **A git library for read-only queries** (`gix`): measured 2026-11-19, a copy from a
+  git template runs 10 git processes; 8 are small queries costing about 7 ms each
+  on macOS once Apple's launcher is bypassed (about 55 ms of a 250 ms copy). A
+  library could remove most of that but not the clone, checkout, or the update's
+  `git apply --reject` / `merge-file` machinery, and adds a large dependency and a
+  second source of git behavior. Not worth it yet; revisit if profiles change.

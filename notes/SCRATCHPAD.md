@@ -32,7 +32,7 @@ Phases 2 to 6 were developed together on one branch (`phase-2-foundations`), bec
 the ported tests exercise the whole stack and could only be turned on once copy,
 update, the CLI and the prompts all existed. The commits are still one per layer.
 
-`cargo test`: 1,222 passing, 0 failing, 30 ignored. `notes/TEST_LEDGER.md` lists
+`cargo test`: 1,225 passing, 0 failing, 27 ignored. `notes/TEST_LEDGER.md` lists
 every ignored test with its reason (regenerate with `python3 tools/gen_ledger.py`).
 A first parity check (copy plus update with a local edit) produced byte-identical
 trees to Python Copier; release build is about 2x faster on copy and 1.4x on update,
@@ -48,15 +48,15 @@ with git subprocesses dominating.
 
 ## Remaining work
 
-1. SIGINT handling: a Ctrl-C during a task or clone should clean up like Python
-   does (`test_cleanup` has three ignored tests waiting on this).
+1. (done) Ctrl-C handling: see `src/interrupt.rs` and `DECISIONS.md`.
 2. A pty-backed test session for `test_prompt::test_path_completion` and
    `test_prompt_does_not_capture_mouse`; exercise the real-terminal redraw path.
 3. Native versions of popular Jinja extensions (see `BACKLOG.md`).
 4. Run on Linux and Windows.
-5. Performance beyond git: a copy from a git template runs 19 git processes; the
-   clone, checkout and submodule update are inherent, the rest could shrink
-   (`rev-parse` calls in `vcs.rs`, `is_in_git_repo` per worker).
+5. Performance: a copy from a git template now runs 10 git processes (0.25 s; clone
+   and checkout are most of it). The update is 0.75 s. See `BACKLOG.md` for the git
+   library assessment. Next lever if needed: profile large templates (many files),
+   where rendering rather than git should dominate.
 6. Extend `parity/run.py` with update round-trips and synthesized templates.
 7. Refactors the reviews asked for and that are not done: split
    `worker/update.rs::apply_update` into steps (a `generate_copy` helper and a

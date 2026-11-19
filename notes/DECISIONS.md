@@ -60,3 +60,17 @@ Dated, with reasons. Newest last.
   matching how Python's warnings stay out of `capsys`.
 - **Questions without a `when` match and without a prompt take their default**, as
   questionary does when `when` is false.
+
+## 2026-11-19 (interrupts and performance)
+
+- **Ctrl-C is recorded, not fatal** (`src/interrupt.rs`): a process-wide flag set by
+  a signal handler, checked at safe points, surfacing as `CopierError::Interrupted`.
+  The flag stays set until the public `run_*` call that noticed it returns, so code
+  that ignores a failing git command cannot lose it. Like Python (whose cleanup is
+  `except Exception`), an interrupted copy does not delete the destination; only
+  temporary directories go.
+- **Git stays on the command line.** Profiling showed the time was not in git's work
+  but in (a) `git submodule update`, a shell script on older gits, now skipped
+  without `.gitmodules`; (b) Apple's `/usr/bin/git` launcher, 21 ms per call versus
+  7.5 ms for the binary behind it, now resolved once; (c) cloning each template
+  version up to five times per update, now shared between the sub-runs.

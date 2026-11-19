@@ -52,26 +52,23 @@ interactively unless you pass `--defaults` or answer them with `--data`.
 - Unexpected errors print a one-line message and exit with status 1 instead of a
   Python traceback. Documented exit codes are unchanged (1 user error, 2 usage
   error or update available with `check-update --quiet`, 4 unsafe template).
-- Ctrl-C during a task or a clone stops the program without Copier's cleanup of a
-  half-created destination.
 - `copier --version` prints `copier 9.19.1 (copier-rs <version>)`.
 
 See `notes/BACKLOG.md` for the full list of deferred work.
 
 ## Performance
 
-Measured on one machine while other work was running (macOS, release build,
-average of 5 runs, small template with three questions and one task). The update
-row was measured before the last round of caching; treat all of it as indicative:
+Measured on one machine while other work was running (macOS, git 2.39, release
+build, small template with three questions and one task); treat it as indicative:
 
 | Operation | Python Copier | copier-rs |
 |---|---|---|
 | copy from a plain directory | 0.71 s | 0.12 s |
-| copy from a git repository | 1.26 s | 0.54 s |
-| update (one local edit) | 4.6 s | 3.2 s |
+| copy from a git repository | 1.23 s | 0.25 s |
+| update (one local edit) | 4.6 s | 0.75 s |
 
-Copies from git and updates are dominated by the `git` processes both
-implementations run, which bounds the gain.
+Git is still driven through its command line. After removing redundant calls,
+what remains of a copy is mostly git's own clone and checkout.
 
 ## Development
 
