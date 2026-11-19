@@ -180,11 +180,17 @@ pub fn escape_git_path(path: &str) -> String {
 /// exist (Python's `Path.resolve()`): the existing part is resolved on disk, the
 /// rest lexically.
 pub fn resolve(path: &std::path::Path) -> std::path::PathBuf {
+    resolve_within(path, 0)
+}
+
+/// Symlink chains longer than this are treated as loops, like the kernel does.
+const MAX_SYMLINK_DEPTH: usize = 40;
+
+fn resolve_within(path: &std::path::Path, depth: usize) -> std::path::PathBuf {
     use std::path::Component;
     let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
     // Resolve the longest existing prefix with one system call per attempt (the
-    // whole path first: the common cases are "exists" and "only the leaf is new"),
-    // then apply what is left lexically.
+    // whole path first: the common cases are "exists" and "only the leaf is new").
     let (mut resolved, existing_len) = absolute
         .ancestors()
         .find_map(|ancestor| {
@@ -194,13 +200,31 @@ pub fn resolve(path: &std::path::Path) -> std::path::PathBuf {
                 .map(|real| (real, ancestor.components().count()))
         })
         .unwrap_or_default();
+    // The rest is walked one component at a time, because `..` can lead back to
+    // paths that exist and a symlink there must still be followed; treating the
+    // tail as plain text would let `missing/../link/x` escape through `link`.
     for component in absolute.components().skip(existing_len) {
         match component {
             Component::ParentDir => {
                 resolved.pop();
             }
             Component::CurDir => {}
-            other => resolved.push(other),
+            other => {
+                resolved.push(other);
+                let is_symlink = std::fs::symlink_metadata(&resolved)
+                    .is_ok_and(|metadata| metadata.is_symlink());
+                if is_symlink {
+                    resolved = match (resolved.canonicalize(), std::fs::read_link(&resolved)) {
+                        (Ok(real), _) => real,
+                        // A dangling link still says where the path leads.
+                        (Err(_), Ok(target)) if depth < MAX_SYMLINK_DEPTH => {
+                            let parent = resolved.parent().unwrap_or(std::path::Path::new("/"));
+                            resolve_within(&parent.join(target), depth + 1)
+                        }
+                        _ => resolved,
+                    };
+                }
+            }
         }
     }
     resolved
@@ -321,6 +345,19 @@ mod tests {
                 root.join("real/new.txt")
             );
             assert_eq!(resolve(&root.join("link/../up.txt")), root.join("up.txt"));
+            // A symlink reached again after `..` over a missing component is followed.
+            assert_eq!(
+                resolve(&root.join("missing/../link/a")),
+                root.join("real/a")
+            );
+            // So is a dangling symlink in the middle of the path.
+            std::os::unix::fs::symlink("elsewhere/deep", root.join("dangling")).unwrap();
+            assert_eq!(
+                resolve(&root.join("dangling/x")),
+                root.join("elsewhere/deep/x")
+            );
+            std::os::unix::fs::symlink("loop", root.join("loop")).unwrap();
+            assert_eq!(resolve(&root.join("loop/x")), root.join("loop/x"));
         }
     }
 

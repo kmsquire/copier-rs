@@ -69,3 +69,23 @@ fn test_executable_bit_comes_from_the_git_index_for_every_file() {
         assert!(!executable("plain.txt"));
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn test_rendered_path_cannot_escape_through_a_symlink_after_dot_dot() {
+    let tmp = Tmp::new();
+    let (src, dst) = tmp.src_dst();
+    let outside = tmp.mktemp("outside");
+    std::os::unix::fs::symlink(&outside, dst.join("link")).unwrap();
+    file_tree! {
+        src.join("{{ name }}.txt") => "must not be written",
+    };
+    // `missing` does not exist, so the path only leaves the destination once
+    // `..` has been applied and `link` is followed.
+    let data = common::v(serde_json::json!({"name": "missing/../link/escaped"}));
+    assert_err!(
+        worker(&src, &dst).data(data).run_copy(),
+        CopierError::ForbiddenPath { .. }
+    );
+    assert!(!outside.join("escaped.txt").exists());
+}
