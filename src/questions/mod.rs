@@ -6,7 +6,7 @@ mod question;
 use std::path::Path;
 
 pub use cast::{cast, py_eq, TYPE_NAMES};
-pub use question::{Choice, DefaultRendered, PromptKind, Question};
+pub use question::{Choice, DefaultRendered, KnownAnswers, PromptKind, Question};
 
 use crate::errors::{warn, WarningKind};
 use crate::value::{Mapping, Value};
@@ -34,12 +34,28 @@ impl AnswersMap {
     /// `last`, `user_defaults`.
     pub fn combined(&self) -> Mapping {
         let mut combined = Mapping::new();
-        for layer in [&self.user_defaults, &self.last, &self.metadata, &self.init, &self.user] {
+        for layer in [
+            &self.user_defaults,
+            &self.last,
+            &self.metadata,
+            &self.init,
+            &self.user,
+        ] {
             for (key, value) in layer {
                 combined.insert(key.clone(), value.clone());
             }
         }
         combined
+    }
+
+    /// What is known about the answer `name`, by source.
+    pub fn known(&self, name: &str) -> KnownAnswers {
+        let key = Value::from(name);
+        KnownAnswers {
+            init: self.init.get(&key).cloned(),
+            last: self.last.get(&key).cloned(),
+            user_default: self.user_defaults.get(&key).cloned(),
+        }
     }
 
     /// The template version recorded by the previous run.
@@ -59,7 +75,11 @@ impl AnswersMap {
 ///
 /// Pass `None` for the default `.copier-answers.yml`.
 pub fn load_answersfile_data(dst_path: &Path, answers_file: Option<&Path>) -> Value {
-    load_data_file(dst_path, answers_file.unwrap_or(Path::new(".copier-answers.yml")), false)
+    load_data_file(
+        dst_path,
+        answers_file.unwrap_or(Path::new(".copier-answers.yml")),
+        false,
+    )
 }
 
 /// Read a YAML data file relative to `dst_path`, optionally warning when it is missing.
@@ -73,7 +93,13 @@ pub(crate) fn load_data_file(dst_path: &Path, relpath: &Path, warn_on_missing: b
         Some(Err(_)) => Value::Map(Mapping::new()),
         None => {
             if warn_on_missing {
-                warn(WarningKind::MissingFile, format!("File not found; returning empty dict: {}", relpath.display()));
+                warn(
+                    WarningKind::MissingFile,
+                    format!(
+                        "File not found; returning empty dict: {}",
+                        relpath.display()
+                    ),
+                );
             }
             Value::Map(Mapping::new())
         }

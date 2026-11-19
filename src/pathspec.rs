@@ -29,8 +29,9 @@ impl PathSpec {
         for pattern in patterns {
             let normalized: String = pattern.as_ref().nfd().collect();
             if let Some((regex, include)) = pattern_to_regex(&normalized)? {
-                let regex = Regex::new(&regex)
-                    .map_err(|_| CopierError::Value(format!("Invalid git pattern: {:?}", pattern.as_ref())))?;
+                let regex = Regex::new(&regex).map_err(|_| {
+                    CopierError::Value(format!("Invalid git pattern: {:?}", pattern.as_ref()))
+                })?;
                 compiled.push((regex, include));
             }
         }
@@ -58,7 +59,11 @@ fn invalid(pattern: &str) -> CopierError {
 /// Translate one pattern into a regex and whether it includes (`true`) or
 /// re-excludes (`false`); `None` for blank lines and comments.
 fn pattern_to_regex(original: &str) -> Result<Option<(String, bool)>> {
-    let pattern = if original.ends_with("\\ ") { original } else { original.trim_end() };
+    let pattern = if original.ends_with("\\ ") {
+        original
+    } else {
+        original.trim_end()
+    };
     if pattern.is_empty() || pattern.starts_with('#') {
         return Ok(None);
     }
@@ -73,7 +78,9 @@ fn pattern_to_regex(original: &str) -> Result<Option<(String, bool)>> {
     // at any depth.
     if segments[0].is_empty() {
         segments.remove(0);
-    } else if (segments.len() == 1 || (segments.len() == 2 && segments[1].is_empty())) && segments[0] != "**" {
+    } else if (segments.len() == 1 || (segments.len() == 2 && segments[1].is_empty()))
+        && segments[0] != "**"
+    {
         segments.insert(0, "**");
     }
     if segments.is_empty() {

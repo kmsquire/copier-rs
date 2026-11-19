@@ -207,7 +207,10 @@ thread_local! {
 /// Emit a warning: recorded if [`capture_warnings`] is active on this thread,
 /// printed to stderr otherwise.
 pub fn warn(kind: WarningKind, message: impl Into<String>) {
-    let warning = Warning { kind, message: message.into() };
+    let warning = Warning {
+        kind,
+        message: message.into(),
+    };
     let uncaptured = WARNING_CAPTURE.with(|slot| match slot.borrow_mut().as_mut() {
         Some(captured) => {
             captured.push(warning.clone());
@@ -216,7 +219,9 @@ pub fn warn(kind: WarningKind, message: impl Into<String>) {
         None => Some(warning),
     });
     if let Some(warning) = uncaptured {
-        crate::output::eprintln(&format!("{:?}Warning: {}", warning.kind, warning.message));
+        // Straight to the real stderr: warnings are diagnostics for the person
+        // running Copier, not part of the output a caller may be capturing.
+        eprintln!("{:?}Warning: {}", warning.kind, warning.message);
     }
 }
 
@@ -224,6 +229,7 @@ pub fn warn(kind: WarningKind, message: impl Into<String>) {
 pub fn capture_warnings<T>(f: impl FnOnce() -> T) -> (T, Vec<Warning>) {
     let previous = WARNING_CAPTURE.with(|slot| slot.borrow_mut().replace(Vec::new()));
     let result = f();
-    let captured = WARNING_CAPTURE.with(|slot| std::mem::replace(&mut *slot.borrow_mut(), previous));
+    let captured =
+        WARNING_CAPTURE.with(|slot| std::mem::replace(&mut *slot.borrow_mut(), previous));
     (result, captured.unwrap_or_default())
 }

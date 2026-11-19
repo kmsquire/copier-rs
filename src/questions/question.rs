@@ -3,7 +3,6 @@
 use minijinja::value::Value as JinjaValue;
 
 use super::cast::{cast, py_eq, TYPE_NAMES};
-use super::AnswersMap;
 use crate::errors::{CopierError, Result, TemplateErrorKind};
 use crate::jinja::{to_jinja, Context, JinjaEnv};
 use crate::settings::Settings;
@@ -60,6 +59,17 @@ pub enum PromptKind {
     Input,
 }
 
+/// What is already known about a question's answer, by source.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct KnownAnswers {
+    /// Passed in up front (`--data` or the API).
+    pub init: Option<Value>,
+    /// Recorded by the previous run.
+    pub last: Option<Value>,
+    /// Default supplied by the API caller.
+    pub user_default: Option<Value>,
+}
+
 /// A question, bound to the answers and render context of the moment it is asked.
 pub struct Question<'a> {
     /// Name of the answer variable.
@@ -88,7 +98,7 @@ pub struct Question<'a> {
     pub when: Value,
     /// Whether the question is asked at all (boolean or template).
     pub ask: Value,
-    answers: &'a AnswersMap,
+    known: KnownAnswers,
     context: Context,
     env: &'a JinjaEnv,
     settings: &'a Settings,
@@ -98,7 +108,9 @@ fn text_field(details: &Mapping, key: &str) -> Result<String> {
     match details.get(&Value::from(key)) {
         None => Ok(String::new()),
         Some(Value::Str(text)) => Ok(text.clone()),
-        Some(_) => Err(CopierError::Validation(format!("{key}\n  Input should be a valid string"))),
+        Some(_) => Err(CopierError::Validation(format!(
+            "{key}\n  Input should be a valid string"
+        ))),
     }
 }
 
@@ -110,9 +122,13 @@ fn bool_field(details: &Mapping, key: &str) -> Result<bool> {
         Some(Value::Str(text)) => match text.to_lowercase().as_str() {
             "1" | "true" | "yes" | "on" | "y" | "t" => Ok(true),
             "0" | "false" | "no" | "off" | "n" | "f" => Ok(false),
-            _ => Err(CopierError::Validation(format!("{key}\n  Input should be a valid boolean"))),
+            _ => Err(CopierError::Validation(format!(
+                "{key}\n  Input should be a valid boolean"
+            ))),
         },
-        Some(_) => Err(CopierError::Validation(format!("{key}\n  Input should be a valid boolean"))),
+        Some(_) => Err(CopierError::Validation(format!(
+            "{key}\n  Input should be a valid boolean"
+        ))),
     }
 }
 
@@ -126,7 +142,7 @@ impl<'a> Question<'a> {
     pub fn new(
         var_name: &str,
         details: &Mapping,
-        answers: &'a AnswersMap,
+        known: KnownAnswers,
         context: Context,
         env: &'a JinjaEnv,
         settings: &'a Settings,
@@ -148,8 +164,14 @@ impl<'a> Question<'a> {
         if RESERVED_NAMES.contains(&var_name) {
             return Err(CopierError::Value("Invalid question name".to_owned()));
         }
-        if let Some(unknown) = details.keys().map(Value::py_str).find(|key| !FIELDS.contains(&key.as_str())) {
-            return Err(CopierError::Validation(format!("{unknown}\n  Unexpected keyword argument")));
+        if let Some(unknown) = details
+            .keys()
+            .map(Value::py_str)
+            .find(|key| !FIELDS.contains(&key.as_str()))
+        {
+            return Err(CopierError::Validation(format!(
+                "{unknown}\n  Unexpected keyword argument"
+            )));
         }
         let get = |key: &str| details.get(&Value::from(key)).cloned();
         let default = get("default");
@@ -163,7 +185,9 @@ impl<'a> Question<'a> {
         }
         let secret = bool_field(details, "secret")?;
         if secret && default.is_none() {
-            return Err(CopierError::Value("Secret question requires a default value".to_owned()));
+            return Err(CopierError::Value(
+                "Secret question requires a default value".to_owned(),
+            ));
         }
         Ok(Self {
             var_name: var_name.to_owned(),
@@ -173,17 +197,24 @@ impl<'a> Question<'a> {
             help: text_field(details, "help")?,
             multiline: get("multiline").unwrap_or(Value::Bool(false)),
             placeholder: text_field(details, "placeholder")?,
-            qmark: get("qmark").filter(|value| !value.is_null()).map(|value| value.py_str()),
+            qmark: get("qmark")
+                .filter(|value| !value.is_null())
+                .map(|value| value.py_str()),
             secret,
             type_name,
             validator: text_field(details, "validator")?,
             when: get("when").unwrap_or(Value::Bool(true)),
             ask: get("ask").unwrap_or(Value::Bool(true)),
-            answers,
+            known,
             context,
             env,
             settings,
         })
+    }
+
+    /// Forget the answer recorded by the previous run.
+    pub fn forget_last(&mut self) {
+        self.known.last = None;
     }
 
     /// Render `value` if it is a string, or each string of a list; other values
@@ -201,14 +232,18 @@ impl<'a> Question<'a> {
         match value {
             Value::Str(source) => match self.env.render_str(source, context) {
                 Ok(rendered) => Ok(Value::Str(rendered)),
-                Err(CopierError::Template { kind: TemplateErrorKind::Undefined, message }) => {
-                    Err(CopierError::UserMessage(message))
-                }
+                Err(CopierError::Template {
+                    kind: TemplateErrorKind::Undefined,
+                    message,
+                }) => Err(CopierError::UserMessage(message)),
                 Err(other) => Err(other),
             },
-            Value::Seq(items) => {
-                Ok(Value::Seq(items.iter().map(|item| self.render_value(item)).collect::<Result<_>>()?))
-            }
+            Value::Seq(items) => Ok(Value::Seq(
+                items
+                    .iter()
+                    .map(|item| self.render_value(item))
+                    .collect::<Result<_>>()?,
+            )),
             other => Ok(other.clone()),
         }
     }
@@ -255,7 +290,9 @@ impl<'a> Question<'a> {
             other => other,
         };
         match answer {
-            Value::Seq(items) if self.multiselect => Ok(Value::Seq(items.iter().map(cast_one).collect::<Result<_>>()?)),
+            Value::Seq(items) if self.multiselect => Ok(Value::Seq(
+                items.iter().map(cast_one).collect::<Result<_>>()?,
+            )),
             other => cast_one(other),
         }
     }
@@ -274,7 +311,10 @@ impl<'a> Question<'a> {
             other => other.clone(),
         };
         let pairs: Vec<(Value, Value, bool)> = match choices {
-            Value::Map(map) => map.into_iter().map(|(name, value)| (name, value, true)).collect(),
+            Value::Map(map) => map
+                .into_iter()
+                .map(|(name, value)| (name, value, true))
+                .collect(),
             Value::Seq(items) => items
                 .into_iter()
                 .map(|item| match item {
@@ -282,7 +322,11 @@ impl<'a> Question<'a> {
                         Ok([name, value]) => Ok((name, value, true)),
                         Err(pair) => Err(CopierError::Value(format!(
                             "{} values to unpack (expected 2)",
-                            if pair.len() > 2 { "too many" } else { "not enough" }
+                            if pair.len() > 2 {
+                                "too many"
+                            } else {
+                                "not enough"
+                            }
                         ))),
                     },
                     single => Ok((single.clone(), single, false)),
@@ -290,7 +334,10 @@ impl<'a> Question<'a> {
                 .collect::<Result<_>>()?,
             Value::Null => Vec::new(),
             other => {
-                return Err(CopierError::Type(format!("'{}' object is not iterable", other.py_type_name())));
+                return Err(CopierError::Type(format!(
+                    "'{}' object is not iterable",
+                    other.py_type_name()
+                )));
             }
         };
         let mut result = Vec::with_capacity(pairs.len());
@@ -304,11 +351,24 @@ impl<'a> Question<'a> {
                 match spec.get(&Value::from("validator")) {
                     None => {}
                     Some(validator @ Value::Str(_)) => disabled = self.render_text(validator)?,
-                    Some(_) => return Err(CopierError::Value("Property 'validator' must be a string".to_owned())),
+                    Some(_) => {
+                        return Err(CopierError::Value(
+                            "Property 'validator' must be a string".to_owned(),
+                        ))
+                    }
                 }
                 value = inner;
             }
-            let choice = Choice { name, value: self.render_value(&value)?, disabled };
+            // A choice without a value stands for its own label.
+            let value = match self.render_value(&value)? {
+                Value::Null => Value::Str(name.clone()),
+                rendered => rendered,
+            };
+            let choice = Choice {
+                name,
+                value,
+                disabled,
+            };
             self.cast_answer(&choice.value)?;
             result.push(choice);
         }
@@ -334,10 +394,16 @@ impl<'a> Question<'a> {
                 .collect(),
             Value::Seq(items) => items.clone(),
             other => {
-                return Err(CopierError::Type(format!("'{}' object is not iterable", other.py_type_name())));
+                return Err(CopierError::Type(format!(
+                    "'{}' object is not iterable",
+                    other.py_type_name()
+                )));
             }
         };
-        let parsed: Vec<Value> = items.iter().map(|item| self.parse_single(item)).collect::<Result<_>>()?;
+        let parsed: Vec<Value> = items
+            .iter()
+            .map(|item| self.parse_single(item))
+            .collect::<Result<_>>()?;
         // The result follows the order of the choices, not of the answer.
         let mut selected = Vec::new();
         for choice in self.formatted_choices()? {
@@ -372,11 +438,18 @@ impl<'a> Question<'a> {
             }
         }
         let detail = if choice_error.is_empty() {
-            format!("{} is not in {}", cast_answer.py_repr(), Value::Seq(valid).py_repr())
+            format!(
+                "{} is not in {}",
+                cast_answer.py_repr(),
+                Value::Seq(valid).py_repr()
+            )
         } else {
             choice_error
         };
-        Err(CopierError::Value(format!("Invalid choice for '{}': {detail}", self.var_name)))
+        Err(CopierError::Value(format!(
+            "Invalid choice for '{}': {detail}",
+            self.var_name
+        )))
     }
 
     /// Check `answer` with the question's validator.
@@ -393,7 +466,10 @@ impl<'a> Question<'a> {
         if message.is_empty() {
             return Ok(());
         }
-        Err(CopierError::Value(format!("Validation error for question '{}': {message}", self.var_name)))
+        Err(CopierError::Value(format!(
+            "Validation error for question '{}': {message}",
+            self.var_name
+        )))
     }
 
     /// Whether the question applies.
@@ -442,18 +518,25 @@ impl<'a> Question<'a> {
     /// Fails when the default is not a valid answer.
     pub fn get_default(&self) -> Result<Option<Value>> {
         let key = Value::from(self.var_name.as_str());
-        let known = [&self.answers.init, &self.answers.last, &self.answers.user_defaults]
-            .into_iter()
-            .find_map(|layer| layer.get(&key));
+        let known = self
+            .known
+            .init
+            .as_ref()
+            .or(self.known.last.as_ref())
+            .or(self.known.user_default.as_ref());
         let result = match known {
             Some(value) => value.clone(),
             None => {
-                let Some(default) = self.settings.defaults.get(&key).or(self.default.as_ref()) else {
+                let Some(default) = self.settings.defaults.get(&key).or(self.default.as_ref())
+                else {
                     return Ok(None);
                 };
                 let context = self.context.with("UNSET", JinjaValue::from(UNSET_MARKER));
                 let rendered = self.render_with(default, &context)?;
-                if rendered.as_str().is_some_and(|text| text.contains(UNSET_MARKER)) {
+                if rendered
+                    .as_str()
+                    .is_some_and(|text| text.contains(UNSET_MARKER))
+                {
                     return Ok(None);
                 }
                 rendered
@@ -495,13 +578,24 @@ impl<'a> Question<'a> {
             (Value::Bool(flag), "bool") => DefaultRendered::Bool(*flag),
             (Value::Null, _) => DefaultRendered::Text(String::new()),
             (_, "json") => {
-                let options =
-                    if self.get_multiline()? { json::DumpOptions::indented(2) } else { json::DumpOptions::default() };
+                let options = if self.get_multiline()? {
+                    json::DumpOptions::indented(2)
+                } else {
+                    json::DumpOptions::default()
+                };
                 DefaultRendered::Text(json::dumps(&default, &options))
             }
             (_, "yaml") => {
-                let flow = if self.get_multiline()? { yaml::FlowStyle::Block } else { yaml::FlowStyle::Flow };
-                let options = yaml::DumpOptions { flow, allow_unicode: false, ..yaml::DumpOptions::default() };
+                let flow = if self.get_multiline()? {
+                    yaml::FlowStyle::Block
+                } else {
+                    yaml::FlowStyle::Flow
+                };
+                let options = yaml::DumpOptions {
+                    flow,
+                    allow_unicode: false,
+                    ..yaml::DumpOptions::default()
+                };
                 let dumped = yaml::dump(&default, &options);
                 DefaultRendered::Text(dumped.trim().trim_end_matches("\n...").trim().to_owned())
             }
@@ -572,7 +666,10 @@ impl<'a> Question<'a> {
     /// Returns the message to show: `Invalid input` when the text cannot be parsed,
     /// otherwise the validator's.
     pub fn check_input(&self, answer: &Value) -> std::result::Result<(), String> {
-        let parsed = self.parse_answer(answer).map_err(|_| "Invalid input".to_owned())?;
-        self.validate_answer(&parsed).map_err(|error| error.to_string())
+        let parsed = self
+            .parse_answer(answer)
+            .map_err(|_| "Invalid input".to_owned())?;
+        self.validate_answer(&parsed)
+            .map_err(|error| error.to_string())
     }
 }

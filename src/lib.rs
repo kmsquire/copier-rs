@@ -13,6 +13,7 @@ pub mod pathspec;
 pub mod prompt;
 pub mod questions;
 pub mod settings;
+pub mod subproject;
 pub mod template;
 pub mod tools;
 pub mod value;

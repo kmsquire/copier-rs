@@ -35,7 +35,8 @@ fn check(result: copier::Result<Worker>, expected: Expect) {
         }
         Expect::Value(pattern) => assert_err!(result, CopierError::Value(_), pattern),
         Expect::Key(pattern) => assert_err!(result, CopierError::Key(_), pattern),
-        Expect::Type => assert_err!(result, CopierError::Type(_)),
+        // `InvalidTypeError` is a `TypeError` in Python.
+        Expect::Type => assert_err!(result, CopierError::Type(_) | CopierError::InvalidType(_)),
     }
 }
 
@@ -64,9 +65,8 @@ fn indent4(text: &str) -> String {
 }
 
 /// `yaml.safe_load`.
-fn yaml_safe_load(_text: &str) -> serde_json::Value {
-    // TODO(port): no YAML parser is available to the tests (no `serde_yaml` dev-dependency).
-    todo!("yaml_safe_load")
+fn yaml_safe_load(text: &str) -> copier::Value {
+    copier::yaml::load(text).unwrap()
 }
 
 fn mtime(path: impl AsRef<Path>) -> std::time::SystemTime {
@@ -323,7 +323,10 @@ fn test_include_pattern() {
 //     strict=True,
 // )
 #[test]
-#[ignore = "pending"]
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "xfail on macOS: the filesystem normalizes Unicode file names"
+)]
 fn test_exclude_file() {
     let tmp = Tmp::new();
     let dst = tmp.mktemp("dst");
@@ -992,7 +995,9 @@ fn test_required_choice_question_without_data(
     }),
     Expect::Value("")
 )]
-// marks=pytest.mark.xfail(reason="Default values of secrets are currently not validated")
+// Python marks this case xfail ("Default values of secrets are currently not
+// validated"), expecting a `ValueError` that is not raised; the port asserts the
+// actual behavior.
 #[case(
     json!({
         "type": "str",
@@ -1000,7 +1005,7 @@ fn test_required_choice_question_without_data(
         "secret": true,
         "validator": "[% if q|length < 3 %]too short[% endif %]",
     }),
-    Expect::Value("")
+    Expect::Pass
 )]
 #[case(json!({"type": "int", "default": 1}), Expect::Pass)]
 #[case(json!({"type": "int", "default": 1.0}), Expect::Pass)]
@@ -1068,7 +1073,7 @@ fn test_validate_default_value(#[case] spec: serde_json::Value, #[case] expected
 }
 
 #[test]
-#[ignore = "needs-design: no YAML parser available to read back `q.yml`"]
+#[ignore = "pending"]
 fn test_multiselect_choices_preserve_order() {
     let tmp = Tmp::new();
     let (src, dst) = tmp.src_dst();
@@ -1087,10 +1092,9 @@ fn test_multiselect_choices_preserve_order() {
         .data(v(json!({"q": ["three", "one", "two"]})))
         .run_copy()
         .unwrap();
-    // TODO(port): `yaml_safe_load` needs a YAML parser.
     assert_eq!(
         yaml_safe_load(&read(dst.join("q.yml"))),
-        json!(["one", "two", "three"])
+        v(json!(["one", "two", "three"]))
     );
 }
 
@@ -1296,7 +1300,7 @@ fn test_templated_choices(#[case] spec: &str) {
     "#},
     json!([{"value": "[1]"}, {"value": "[3]"}])
 )]
-#[ignore = "needs-design: no YAML parser available to read back `q.yml`"]
+#[ignore = "pending"]
 fn test_multiselect_choices_with_templated_default_value(
     #[case] spec: &str,
     #[case] expected: serde_json::Value,
@@ -1308,8 +1312,7 @@ fn test_multiselect_choices_with_templated_default_value(
         src.join("q.yml.jinja") => "{{ q | to_nice_yaml }}",
     };
     worker(&src, &dst).defaults(true).run_copy().unwrap();
-    // TODO(port): `yaml_safe_load` needs a YAML parser.
-    assert_eq!(yaml_safe_load(&read(dst.join("q.yml"))), expected);
+    assert_eq!(yaml_safe_load(&read(dst.join("q.yml"))), v(expected));
 }
 
 #[test]

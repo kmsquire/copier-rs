@@ -1,11 +1,27 @@
 //! The engine: copy, recopy and update, mirroring `copier/_main.py`.
 
-use std::path::{Path, PathBuf};
+mod ask;
+mod context;
+mod copy;
+mod render;
+mod state;
+mod tasks;
+mod update;
 
-use crate::errors::Result;
-use crate::prompt::Prompter;
+use std::cell::{OnceCell, RefCell};
+use std::fmt;
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
+
+pub use state::{Operation, Phase};
+
+use crate::errors::{CopierError, Result};
+use crate::jinja::JinjaEnv;
+use crate::pathspec::PathSpec;
+use crate::prompt::{NoPrompter, Prompter};
 use crate::questions::AnswersMap;
-use crate::settings::Settings;
+use crate::settings::{load_settings, Settings};
+use crate::subproject::Subproject;
 use crate::template::Template;
 use crate::value::{Mapping, Value};
 
@@ -17,6 +33,16 @@ pub enum ConflictMode {
     Inline,
     /// Separate `*.rej` files.
     Rej,
+}
+
+impl ConflictMode {
+    /// The name used on the command line and in `_copier_conf`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Inline => "inline",
+            Self::Rej => "rej",
+        }
+    }
 }
 
 /// Which template version to use.
@@ -38,20 +64,10 @@ impl From<&str> for VcsRef {
     }
 }
 
-/// Stage of a run, exposed to templates as `_copier_phase`.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Phase {
-    /// Asking questions.
-    Prompt,
-    /// Running tasks.
-    Tasks,
-    /// Running migrations.
-    Migrate,
-    /// Rendering files.
-    Render,
-    /// Outside any phase.
-    #[default]
-    Undefined,
+impl From<String> for VcsRef {
+    fn from(text: String) -> Self {
+        Self::from(text.as_str())
+    }
 }
 
 /// Result of [`get_update_data`].
@@ -63,6 +79,18 @@ pub struct UpdateData {
     pub current_version: String,
     /// Newest available version.
     pub latest_version: String,
+}
+
+/// Values derived from the options, computed once per worker.
+#[derive(Default)]
+struct Cache {
+    settings: OnceCell<Settings>,
+    template: OnceCell<Template>,
+    subproject: OnceCell<Subproject>,
+    env: OnceCell<JinjaEnv>,
+    template_copy_root: OnceCell<PathBuf>,
+    match_exclude: RefCell<Option<Rc<PathSpec>>>,
+    match_skip: OnceCell<PathSpec>,
 }
 
 /// Options and state of one Copier run.
@@ -114,7 +142,8 @@ pub struct Worker {
     pub ask: Vec<String>,
     /// Answers collected by the run.
     pub answers: AnswersMap,
-    prompter: Option<Box<dyn Prompter>>,
+    prompter: Rc<RefCell<dyn Prompter>>,
+    cache: Cache,
 }
 
 impl Default for Worker {
@@ -142,8 +171,26 @@ impl Default for Worker {
             skip_tasks: false,
             ask: Vec::new(),
             answers: AnswersMap::default(),
-            prompter: None,
+            prompter: Rc::new(RefCell::new(NoPrompter)),
+            cache: Cache::default(),
         }
+    }
+}
+
+impl fmt::Debug for Worker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Worker")
+            .field("src_path", &self.src_path)
+            .field("dst_path", &self.dst_path)
+            .field("answers_file", &self.answers_file)
+            .field("vcs_ref", &self.vcs_ref)
+            .field("data", &self.data)
+            .field("defaults", &self.defaults)
+            .field("overwrite", &self.overwrite)
+            .field("pretend", &self.pretend)
+            .field("quiet", &self.quiet)
+            .field("unsafe_", &self.unsafe_)
+            .finish_non_exhaustive()
     }
 }
 
@@ -156,6 +203,14 @@ fn to_mapping(value: Value) -> Mapping {
 
 fn to_strings<S: Into<String>>(items: impl IntoIterator<Item = S>) -> Vec<String> {
     items.into_iter().map(Into::into).collect()
+}
+
+fn cached<T>(cell: &OnceCell<T>, compute: impl FnOnce() -> Result<T>) -> Result<&T> {
+    if let Some(value) = cell.get() {
+        return Ok(value);
+    }
+    let value = compute()?;
+    Ok(cell.get_or_init(|| value))
 }
 
 impl Worker {
@@ -213,7 +268,10 @@ impl Worker {
     }
 
     /// Set extra skip-if-exists patterns.
-    pub fn skip_if_exists<S: Into<String>>(mut self, patterns: impl IntoIterator<Item = S>) -> Self {
+    pub fn skip_if_exists<S: Into<String>>(
+        mut self,
+        patterns: impl IntoIterator<Item = S>,
+    ) -> Self {
         self.skip_if_exists = to_strings(patterns);
         self
     }
@@ -292,23 +350,144 @@ impl Worker {
 
     /// Replace the terminal prompts with a custom answer source.
     pub fn prompter(mut self, prompter: Box<dyn Prompter>) -> Self {
-        self.prompter = Some(prompter);
+        self.prompter = Rc::new(RefCell::new(BoxedPrompter(prompter)));
         self
     }
 
-    /// The template this worker renders.
-    pub fn template(&self) -> Result<Template> {
-        todo!("Worker::template")
+    /// A worker with the same options and prompter but none of the derived state,
+    /// like Python's `dataclasses.replace(worker)`.
+    fn derive(&self) -> Self {
+        Self {
+            src_path: self.src_path.clone(),
+            dst_path: self.dst_path.clone(),
+            answers_file: self.answers_file.clone(),
+            vcs_ref: self.vcs_ref.clone(),
+            data: self.data.clone(),
+            settings: Some(self.user_settings().cloned().unwrap_or_default()),
+            exclude: self.exclude.clone(),
+            use_prereleases: self.use_prereleases,
+            skip_if_exists: self.skip_if_exists.clone(),
+            cleanup_on_error: self.cleanup_on_error,
+            defaults: self.defaults,
+            user_defaults: self.user_defaults.clone(),
+            overwrite: self.overwrite,
+            pretend: self.pretend,
+            quiet: self.quiet,
+            conflict: self.conflict,
+            context_lines: self.context_lines,
+            unsafe_: self.unsafe_,
+            skip_answered: self.skip_answered,
+            skip_tasks: self.skip_tasks,
+            ask: self.ask.clone(),
+            answers: AnswersMap::default(),
+            prompter: Rc::clone(&self.prompter),
+            cache: Cache::default(),
+        }
     }
 
-    /// The Jinja context files are rendered with.
-    pub fn render_context(&self) -> Result<Mapping> {
-        todo!("Worker::render_context")
+    /// The user settings in effect: the ones given, or those loaded from disk.
+    fn user_settings(&self) -> Result<&Settings> {
+        cached(&self.cache.settings, || match &self.settings {
+            Some(settings) => Ok(settings.clone()),
+            None => load_settings(None),
+        })
+    }
+
+    /// The project being generated or updated.
+    fn subproject(&self) -> Result<&Subproject> {
+        cached(&self.cache.subproject, || {
+            Ok(Subproject::new(
+                std::path::absolute(&self.dst_path)?,
+                self.answers_file
+                    .clone()
+                    .unwrap_or_else(|| PathBuf::from(".copier-answers.yml")),
+            ))
+        })
+    }
+
+    fn missing_template() -> CopierError {
+        CopierError::Type("Template not found".to_owned())
+    }
+
+    /// The git ref to use, with `:current:` resolved to the recorded version.
+    fn resolved_vcs_ref(&self) -> Result<Option<String>> {
+        match &self.vcs_ref {
+            None => Ok(None),
+            Some(VcsRef::Ref(git_ref)) => Ok(Some(git_ref.clone())),
+            Some(VcsRef::Current) => {
+                let template = self
+                    .subproject()?
+                    .template()
+                    .ok_or_else(Self::missing_template)?;
+                Ok(template.git_ref.clone())
+            }
+        }
+    }
+
+    fn template_ref(&self) -> Result<&Template> {
+        cached(&self.cache.template, || {
+            let url = match &self.src_path {
+                Some(url) if !url.is_empty() => url.clone(),
+                _ => self
+                    .subproject()?
+                    .template()
+                    .ok_or_else(Self::missing_template)?
+                    .url
+                    .clone(),
+            };
+            let mut template = Template::new(url).use_prereleases(self.use_prereleases);
+            if let Some(git_ref) = self.resolved_vcs_ref()? {
+                template = template.git_ref(git_ref);
+            }
+            Ok(template)
+        })
+    }
+
+    /// The template this worker renders.
+    ///
+    /// # Errors
+    ///
+    /// Fails when no template is given and the project records none.
+    pub fn template(&self) -> Result<Template> {
+        self.template_ref().cloned()
+    }
+
+    fn env(&self) -> Result<&JinjaEnv> {
+        cached(&self.cache.env, || {
+            let template = self.template_ref()?;
+            JinjaEnv::new(
+                &template.local_abspath()?,
+                &template.envops()?,
+                &template.jinja_extensions()?,
+            )
+        })
     }
 
     /// Template and user exclusion patterns combined.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the template configuration cannot be read.
     pub fn all_exclusions(&self) -> Result<Vec<String>> {
-        todo!("Worker::all_exclusions")
+        let mut patterns = self.template_ref()?.exclude()?;
+        patterns.extend(self.exclude.iter().cloned());
+        Ok(patterns)
+    }
+
+    /// User and template skip-if-exists patterns combined.
+    fn all_skip_if_exists(&self) -> Result<Vec<String>> {
+        let mut patterns = self.skip_if_exists.clone();
+        patterns.extend(self.template_ref()?.skip_if_exists()?);
+        Ok(patterns)
+    }
+
+    /// The Jinja context files are rendered with, as plain data.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the template cannot be loaded.
+    pub fn render_context(&self) -> Result<Mapping> {
+        Ok(self.context()?.to_mapping())
     }
 
     /// Generate a project from the template.
@@ -317,8 +496,9 @@ impl Worker {
     ///
     /// Fails on invalid configuration or answers, unsafe features without trust,
     /// failing tasks, or I/O errors.
-    pub fn run_copy(self) -> Result<Self> {
-        todo!("Worker::run_copy")
+    pub fn run_copy(mut self) -> Result<Self> {
+        self.copy()?;
+        Ok(self)
     }
 
     /// Regenerate the project from its template, keeping answers but discarding
@@ -327,8 +507,9 @@ impl Worker {
     /// # Errors
     ///
     /// Fails when the project has no recorded template, or as [`Worker::run_copy`].
-    pub fn run_recopy(self) -> Result<Self> {
-        todo!("Worker::run_recopy")
+    pub fn run_recopy(mut self) -> Result<Self> {
+        self.recopy()?;
+        Ok(self)
     }
 
     /// Update the project to a newer template version, preserving local changes.
@@ -337,16 +518,30 @@ impl Worker {
     ///
     /// Fails when the project is not a clean git repository, lacks recorded template
     /// data, would be downgraded, or as [`Worker::run_copy`].
-    pub fn run_update(self) -> Result<Self> {
-        todo!("Worker::run_update")
+    pub fn run_update(mut self) -> Result<Self> {
+        self.update()?;
+        Ok(self)
     }
 }
 
-/// Report whether the project at `dst_path` can be updated to a newer template version.
-///
-/// # Errors
-///
-/// Fails when the project lacks the recorded template data needed to compare versions.
-pub fn get_update_data(_dst_path: &Path, _answers_file: Option<&Path>, _use_prereleases: bool) -> Result<UpdateData> {
-    todo!("get_update_data")
+/// Adapter so a boxed prompter can live behind the shared trait object.
+struct BoxedPrompter(Box<dyn Prompter>);
+
+impl Prompter for BoxedPrompter {
+    fn ask(
+        &mut self,
+        spec: &crate::prompt::PromptSpec<'_>,
+    ) -> std::result::Result<Value, crate::prompt::PromptError> {
+        self.0.ask(spec)
+    }
+
+    fn confirm(
+        &mut self,
+        message: &str,
+        default: bool,
+    ) -> std::result::Result<bool, crate::prompt::PromptError> {
+        self.0.confirm(message, default)
+    }
 }
+
+pub use update::get_update_data;
